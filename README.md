@@ -6,6 +6,16 @@ A production multi-asset algorithmic trading system running live since January 2
 
 ---
 
+## Dashboard
+
+Real-time monitoring dashboard with broker health, circuit breakers, AI bot status, and risk controls.
+
+![Dashboard Overview — Live trading status, P&L metrics, broker connections, and circuit breakers](docs/screenshots/dashboard-overview.png)
+
+![Dashboard Analytics — Go/No-Go validation, equity curve, AI performance analytics, and edge detection tables](docs/screenshots/dashboard-overview-lower.png)
+
+---
+
 ## What Makes This Interesting
 
 - **8-source prediction market pipeline** that routes weather tickers to meteorological models (GFS 30-member ensemble, NWS Normal CDF) and economic tickers to Fed nowcasts (Cleveland CPI, Atlanta GDPNow) -- domain-specific intelligence, not generic sentiment.
