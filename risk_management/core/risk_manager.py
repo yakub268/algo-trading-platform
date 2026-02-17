@@ -255,10 +255,17 @@ class AdvancedRiskManager:
                 symbols = list(self.current_positions.keys())
                 self.heat_monitor.update_prices()
 
-            # Get component assessments
+            # Get component assessments (each individually wrapped so one failure
+            # doesn't trigger emergency mode for the entire portfolio)
             heat_metrics = self.heat_monitor.calculate_heat_metrics()
             correlation_metrics = self.correlation_monitor.analyze_correlations()
-            var_summary = self.var_calculator.calculate_portfolio_var()
+
+            try:
+                var_summary = self.var_calculator.calculate_portfolio_var()
+            except Exception as ve:
+                logger.warning(f"VaR calculation failed (non-fatal): {ve}")
+                var_summary = None
+
             protection_status = self.drawdown_protection._assess_protection_status(
                 self.drawdown_protection._calculate_current_drawdown(timestamp)
             )
@@ -266,7 +273,7 @@ class AdvancedRiskManager:
             # Calculate component scores (0-100)
             heat_score = heat_metrics.overall_heat
             correlation_score = self._calculate_correlation_score(correlation_metrics)
-            var_score = self._calculate_var_score(var_summary)
+            var_score = self._calculate_var_score(var_summary) if var_summary else 0.0
             drawdown_score = protection_status.current_drawdown.drawdown_percentage * 500  # Scale to 0-100
             volatility_score = self._calculate_volatility_score()
 

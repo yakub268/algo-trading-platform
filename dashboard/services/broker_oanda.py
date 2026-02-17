@@ -8,7 +8,6 @@ import logging
 from datetime import datetime
 from typing import List, Optional
 
-import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -40,19 +39,7 @@ class OandaService:
         self.latency_ms = 0
 
         if OANDA_AVAILABLE and self.api_key:
-            # Determine environment from URL -- but also safety-check the account ID
-            if "practice" in self.base_url:
-                env = "practice"
-            elif self.account_id and self.account_id.startswith("001-"):
-                # Practice account (001-prefix) must use practice endpoint
-                logger.warning(
-                    "OANDA account ID is a practice account (001-prefix). "
-                    "Forcing practice environment regardless of base_url setting."
-                )
-                env = "practice"
-                self.base_url = "https://api-fxpractice.oanda.com"
-            else:
-                env = "live"
+            env = "practice" if "practice" in self.base_url else "live"
             self.api = API(access_token=self.api_key, environment=env)
         else:
             self.api = None

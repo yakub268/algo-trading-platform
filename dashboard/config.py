@@ -30,17 +30,8 @@ OANDA_API_KEY = os.getenv('OANDA_API_KEY', '')
 OANDA_ACCOUNT_ID = os.getenv('OANDA_ACCOUNT_ID', '')
 OANDA_ENVIRONMENT = os.getenv('OANDA_ENVIRONMENT', 'practice')
 
-# Safety: if account ID starts with "001-" it's a practice account regardless of OANDA_ENVIRONMENT
-# Practice accounts MUST use the practice endpoint or you get 400 errors.
-if OANDA_ACCOUNT_ID.startswith('001-'):
-    OANDA_BASE_URL = 'https://api-fxpractice.oanda.com'
-    if OANDA_ENVIRONMENT == 'live':
-        import logging as _log
-        _log.getLogger(__name__).warning(
-            "OANDA account ID is a practice account (001-prefix) but OANDA_ENVIRONMENT=live. "
-            "Forcing practice endpoint to avoid 400 errors."
-        )
-elif OANDA_ENVIRONMENT == 'practice':
+# Use endpoint from env (token must match endpoint)
+if OANDA_ENVIRONMENT == 'practice':
     OANDA_BASE_URL = 'https://api-fxpractice.oanda.com'
 else:
     OANDA_BASE_URL = 'https://api-fxtrade.oanda.com'
