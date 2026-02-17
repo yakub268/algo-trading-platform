@@ -1,0 +1,626 @@
+# ===============================================
+# CUSTOM METRICS FOR TRADING VOLUME AUTOSCALING
+# ===============================================
+# Advanced HPA based on trading-specific metrics
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: custom-metrics-apiserver
+  namespace: trading-platform
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: custom-metrics:system:auth-delegator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  name: custom-metrics-apiserver
+  namespace: trading-platform
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: custom-metrics-auth-reader
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+- kind: ServiceAccount
+  name: custom-metrics-apiserver
+  namespace: trading-platform
+
+---
+# ===============================================
+# CUSTOM METRICS DEPLOYMENT
+# ===============================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: custom-metrics-apiserver
+  namespace: trading-platform
+  labels:
+    app: custom-metrics-apiserver
+    component: metrics
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: custom-metrics-apiserver
+  template:
+    metadata:
+      labels:
+        app: custom-metrics-apiserver
+        component: metrics
+    spec:
+      serviceAccountName: custom-metrics-apiserver
+      containers:
+      - name: custom-metrics-apiserver
+        image: k8s.gcr.io/prometheus-adapter/prometheus-adapter:v0.11.1
+        args:
+        - --secure-port=6443
+        - --tls-cert-file=/var/run/serving-cert/tls.crt
+        - --tls-private-key-file=/var/run/serving-cert/tls.key
+        - --logtostderr=true
+        - --prometheus-url=http://prometheus:9090/
+        - --metrics-relist-interval=1m
+        - --v=4
+        - --config=/etc/adapter/config.yaml
+        ports:
+        - containerPort: 6443
+        volumeMounts:
+        - mountPath: /var/run/serving-cert
+          name: volume-serving-cert
+          readOnly: true
+        - mountPath: /etc/adapter/
+          name: config
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: volume-serving-cert
+        secret:
+          secretName: cm-adapter-serving-certs
+      - name: config
+        configMap:
+          name: adapter-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: custom-metrics-apiserver
+  namespace: trading-platform
+spec:
+  ports:
+  - port: 443
+    targetPort: 6443
+  selector:
+    app: custom-metrics-apiserver
+
+---
+# ===============================================
+# CUSTOM METRICS CONFIGURATION
+# ===============================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: adapter-config
+  namespace: trading-platform
+data:
+  config.yaml: |
+    rules:
+    # Trading Volume Metrics
+    - seriesQuery: 'trading_volume_per_second{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          pod: {resource: "pod"}
+      name:
+        matches: "^trading_volume_per_second"
+        as: "trading_volume_per_second"
+      metricsQuery: 'avg_over_time(<<.Series>>{<<.LabelMatchers>>}[2m])'
+
+    - seriesQuery: 'trading_orders_per_minute{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          pod: {resource: "pod"}
+      name:
+        matches: "^trading_orders_per_minute"
+        as: "trading_orders_per_minute"
+      metricsQuery: 'avg_over_time(<<.Series>>{<<.LabelMatchers>>}[5m])'
+
+    # Market Activity Metrics
+    - seriesQuery: 'market_volatility_index{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          pod: {resource: "pod"}
+      name:
+        matches: "^market_volatility_index"
+        as: "market_volatility_index"
+      metricsQuery: 'avg_over_time(<<.Series>>{<<.LabelMatchers>>}[10m])'
+
+    - seriesQuery: 'active_trading_sessions{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          pod: {resource: "pod"}
+      name:
+        matches: "^active_trading_sessions"
+        as: "active_trading_sessions"
+      metricsQuery: 'avg_over_time(<<.Series>>{<<.LabelMatchers>>}[2m])'
+
+    # API Performance Metrics
+    - seriesQuery: 'api_requests_per_second{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          pod: {resource: "pod"}
+      name:
+        matches: "^api_requests_per_second"
+        as: "api_requests_per_second"
+      metricsQuery: 'avg_over_time(<<.Series>>{<<.LabelMatchers>>}[1m])'
+
+    - seriesQuery: 'api_response_time_p95{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          pod: {resource: "pod"}
+      name:
+        matches: "^api_response_time_p95"
+        as: "api_response_time_p95"
+      metricsQuery: 'avg_over_time(<<.Series>>{<<.LabelMatchers>>}[2m])'
+
+    # Database Performance Metrics
+    - seriesQuery: 'database_connections_active{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          pod: {resource: "pod"}
+      name:
+        matches: "^database_connections_active"
+        as: "database_connections_active"
+      metricsQuery: 'avg_over_time(<<.Series>>{<<.LabelMatchers>>}[1m])'
+
+    # Queue Length Metrics
+    - seriesQuery: 'celery_queue_length{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          pod: {resource: "pod"}
+      name:
+        matches: "^celery_queue_length"
+        as: "celery_queue_length"
+      metricsQuery: 'avg_over_time(<<.Series>>{<<.LabelMatchers>>}[1m])'
+
+    - seriesQuery: 'redis_memory_usage_bytes{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          pod: {resource: "pod"}
+      name:
+        matches: "^redis_memory_usage_bytes"
+        as: "redis_memory_usage_bytes"
+      metricsQuery: 'avg_over_time(<<.Series>>{<<.LabelMatchers>>}[2m])'
+
+---
+# ===============================================
+# API SERVICE REGISTRATION
+# ===============================================
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1beta1.custom.metrics.k8s.io
+spec:
+  service:
+    name: custom-metrics-apiserver
+    namespace: trading-platform
+  group: custom.metrics.k8s.io
+  version: v1beta1
+  insecureSkipTLSVerify: true
+  groupPriorityMinimum: 100
+  versionPriority: 100
+
+---
+# ===============================================
+# ADVANCED HPA FOR ORCHESTRATOR (TRADING VOLUME)
+# ===============================================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: orchestrator-trading-volume-hpa
+  namespace: trading-platform
+  labels:
+    app: orchestrator
+    component: autoscaling
+    scaling-type: trading-volume
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: orchestrator
+  minReplicas: 3
+  maxReplicas: 50
+  metrics:
+  # Trading volume per second
+  - type: Object
+    object:
+      metric:
+        name: trading_volume_per_second
+      target:
+        type: Value
+        value: "100"
+      describedObject:
+        apiVersion: v1
+        kind: Service
+        name: orchestrator-service
+
+  # Orders per minute
+  - type: Object
+    object:
+      metric:
+        name: trading_orders_per_minute
+      target:
+        type: Value
+        value: "500"
+      describedObject:
+        apiVersion: v1
+        kind: Service
+        name: orchestrator-service
+
+  # Market volatility (scale up when market is volatile)
+  - type: Object
+    object:
+      metric:
+        name: market_volatility_index
+      target:
+        type: Value
+        value: "0.8"
+      describedObject:
+        apiVersion: v1
+        kind: Service
+        name: orchestrator-service
+
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+      - type: Pods
+        value: 5
+        periodSeconds: 30
+      - type: Percent
+        value: 100
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      - type: Percent
+        value: 10
+        periodSeconds: 180
+
+---
+# ===============================================
+# ADVANCED HPA FOR API (REQUEST VOLUME)
+# ===============================================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-request-volume-hpa
+  namespace: trading-platform
+  labels:
+    app: api
+    component: autoscaling
+    scaling-type: request-volume
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  minReplicas: 5
+  maxReplicas: 100
+  metrics:
+  # API requests per second
+  - type: Object
+    object:
+      metric:
+        name: api_requests_per_second
+      target:
+        type: Value
+        value: "50"
+      describedObject:
+        apiVersion: v1
+        kind: Service
+        name: api-service
+
+  # API response time (scale up when response time increases)
+  - type: Object
+    object:
+      metric:
+        name: api_response_time_p95
+      target:
+        type: Value
+        value: "300"  # 300ms
+      describedObject:
+        apiVersion: v1
+        kind: Service
+        name: api-service
+
+  # Active trading sessions
+  - type: Object
+    object:
+      metric:
+        name: active_trading_sessions
+      target:
+        type: Value
+        value: "100"
+      describedObject:
+        apiVersion: v1
+        kind: Service
+        name: api-service
+
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 15
+      policies:
+      - type: Pods
+        value: 10
+        periodSeconds: 15
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Pods
+        value: 3
+        periodSeconds: 60
+      - type: Percent
+        value: 10
+        periodSeconds: 120
+
+---
+# ===============================================
+# ADVANCED HPA FOR WORKER (QUEUE LENGTH)
+# ===============================================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: worker-queue-length-hpa
+  namespace: trading-platform
+  labels:
+    app: worker
+    component: autoscaling
+    scaling-type: queue-length
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: worker
+  minReplicas: 4
+  maxReplicas: 50
+  metrics:
+  # Celery queue length
+  - type: Object
+    object:
+      metric:
+        name: celery_queue_length
+      target:
+        type: Value
+        value: "10"
+      describedObject:
+        apiVersion: v1
+        kind: Service
+        name: redis-service
+
+  # Redis memory usage (scale up when Redis is under pressure)
+  - type: Object
+    object:
+      metric:
+        name: redis_memory_usage_bytes
+      target:
+        type: Value
+        value: "1073741824"  # 1GB
+      describedObject:
+        apiVersion: v1
+        kind: Service
+        name: redis-service
+
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Pods
+        value: 5
+        periodSeconds: 60
+      - type: Percent
+        value: 50
+        periodSeconds: 120
+    scaleDown:
+      stabilizationWindowSeconds: 600
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 180
+
+---
+# ===============================================
+# VERTICAL POD AUTOSCALER
+# ===============================================
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: orchestrator-vpa
+  namespace: trading-platform
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: orchestrator
+  updatePolicy:
+    updateMode: "Auto"
+  resourcePolicy:
+    containerPolicies:
+    - containerName: orchestrator
+      minAllowed:
+        cpu: 100m
+        memory: 128Mi
+      maxAllowed:
+        cpu: 4
+        memory: 8Gi
+      controlledResources: ["cpu", "memory"]
+      controlledValues: RequestsAndLimits
+
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: api-vpa
+  namespace: trading-platform
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  updatePolicy:
+    updateMode: "Auto"
+  resourcePolicy:
+    containerPolicies:
+    - containerName: api
+      minAllowed:
+        cpu: 100m
+        memory: 128Mi
+      maxAllowed:
+        cpu: 2
+        memory: 4Gi
+      controlledResources: ["cpu", "memory"]
+      controlledValues: RequestsAndLimits
+
+---
+# ===============================================
+# CLUSTER AUTOSCALER CONFIGURATION
+# ===============================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-autoscaler
+  namespace: kube-system
+  labels:
+    app: cluster-autoscaler
+spec:
+  selector:
+    matchLabels:
+      app: cluster-autoscaler
+  template:
+    metadata:
+      labels:
+        app: cluster-autoscaler
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '8085'
+    spec:
+      serviceAccountName: cluster-autoscaler
+      containers:
+      - image: k8s.gcr.io/autoscaling/cluster-autoscaler:v1.28.2
+        name: cluster-autoscaler
+        resources:
+          limits:
+            cpu: 100m
+            memory: 300Mi
+          requests:
+            cpu: 100m
+            memory: 300Mi
+        command:
+        - ./cluster-autoscaler
+        - --v=4
+        - --stderrthreshold=info
+        - --cloud-provider=aws
+        - --skip-nodes-with-local-storage=false
+        - --expander=least-waste
+        - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/trading-bot-cluster
+        - --balance-similar-node-groups
+        - --skip-nodes-with-system-pods=false
+        - --scale-down-enabled=true
+        - --scale-down-delay-after-add=10m
+        - --scale-down-unneeded-time=10m
+        - --scale-down-utilization-threshold=0.5
+        - --max-node-provision-time=15m
+        - --scan-interval=10s
+        env:
+        - name: AWS_REGION
+          value: us-east-1
+        volumeMounts:
+        - name: ssl-certs
+          mountPath: /etc/ssl/certs/ca-certificates.crt
+          readOnly: true
+        imagePullPolicy: "Always"
+      volumes:
+      - name: ssl-certs
+        hostPath:
+          path: "/etc/ssl/certs/ca-bundle.crt"
+
+---
+# ===============================================
+# PROMETHEUS RULES FOR TRADING METRICS
+# ===============================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: trading-volume-rules
+  namespace: trading-platform
+spec:
+  groups:
+  - name: trading.volume.rules
+    rules:
+    - alert: HighTradingVolume
+      expr: trading_volume_per_second > 200
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: High trading volume detected
+        description: "Trading volume is {{ $value }} per second, which is above the threshold of 200"
+
+    - alert: MarketVolatilitySpike
+      expr: market_volatility_index > 1.5
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: High market volatility detected
+        description: "Market volatility index is {{ $value }}, indicating potential trading surge"
+
+    - alert: APIResponseTimeDegraded
+      expr: api_response_time_p95 > 1000
+      for: 3m
+      labels:
+        severity: warning
+      annotations:
+        summary: API response time degraded
+        description: "API 95th percentile response time is {{ $value }}ms, above 1000ms threshold"
+
+    - alert: HighQueueLength
+      expr: celery_queue_length > 50
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: High queue length detected
+        description: "Celery queue length is {{ $value }}, indicating processing backlog"

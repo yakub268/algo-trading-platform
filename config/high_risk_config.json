@@ -1,0 +1,12 @@
+{
+    "high_risk_enabled": true,
+    "aggressive_bots": [
+        "MomentumScalper",
+        "BreakoutHunter",
+        "MemeCoinSniper",
+        "RSIExtremes",
+        "MultiMomentum"
+    ],
+    "last_modified": "2026-02-16T07:08:56.672011+00:00",
+    "last_modified_by": "dashboard"
+}

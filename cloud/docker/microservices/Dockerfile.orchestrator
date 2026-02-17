@@ -1,0 +1,64 @@
+# ===============================================
+# MASTER ORCHESTRATOR MICROSERVICE
+# ===============================================
+# High-performance container for the main trading orchestrator
+# Handles 23 trading bots with enterprise-grade reliability
+
+FROM tradingbot/base:latest as production
+
+# Service-specific metadata
+LABEL service="master-orchestrator"
+LABEL component="core"
+LABEL tier="critical"
+
+# Switch to root for installation, then back to tradingbot user
+USER root
+
+# Install additional dependencies for orchestrator
+COPY requirements.txt /tmp/requirements-orchestrator.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-orchestrator.txt
+
+# Copy orchestrator service files
+COPY master_orchestrator.py /app/
+COPY bots/ /app/bots/
+COPY strategies/ /app/strategies/
+COPY filters/ /app/filters/
+COPY utils/ /app/utils/
+COPY ai/ /app/ai/
+COPY config/ /app/config/
+COPY risk_management/ /app/risk_management/
+
+# Copy configuration templates
+COPY cloud/configs/env-templates/orchestrator.env.template /app/config/
+COPY cloud/configs/security/orchestrator-security.conf /app/config/
+
+# Set proper permissions
+RUN chown -R tradingbot:tradingbot /app && \
+    chmod 755 /app/master_orchestrator.py
+
+# Create runtime directories
+RUN mkdir -p /app/{pids,backups,metrics} && \
+    chown -R tradingbot:tradingbot /app/{pids,backups,metrics}
+
+# Switch back to non-root user
+USER tradingbot
+
+# Environment variables
+ENV SERVICE_NAME=master-orchestrator
+ENV SERVICE_PORT=8001
+ENV LOG_LEVEL=INFO
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# Health check specific to orchestrator
+HEALTHCHECK --interval=15s --timeout=10s --start-period=60s --retries=5 \
+    CMD python /app/health-check.py || exit 1
+
+# Expose service port
+EXPOSE 8001
+
+# Volume mounts for persistence
+VOLUME ["/app/logs", "/app/data", "/app/backups"]
+
+# Startup command
+CMD ["python", "/app/master_orchestrator.py", "--mode=production", "--log-level=INFO"]

@@ -1,0 +1,180 @@
+# ===============================================
+# CONFIGURATION MAPS FOR TRADING PLATFORM
+# ===============================================
+# Centralized configuration management
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trading-config
+  namespace: trading-platform
+  labels:
+    app: trading-platform
+    component: config
+data:
+  # Database Configuration
+  postgres_host: "postgres-service"
+  postgres_port: "5432"
+  postgres_db: "tradingbot"
+
+  # Redis Configuration
+  redis_host: "redis-service"
+  redis_port: "6379"
+
+  # Application Settings
+  log_level: "INFO"
+  trading_mode: "paper"
+  max_concurrent_trades: "50"
+  risk_limit_percent: "2.0"
+
+  # API Settings
+  api_rate_limit: "1000"
+  api_timeout: "30"
+
+  # Monitoring Configuration
+  metrics_enabled: "true"
+  tracing_enabled: "true"
+  prometheus_port: "8080"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: trading-platform
+  labels:
+    app: nginx
+    component: config
+data:
+  nginx.conf: |
+    upstream dashboard {
+        least_conn;
+        server dashboard-service:5000 max_fails=3 fail_timeout=30s;
+    }
+
+    upstream api {
+        least_conn;
+        server api-service:8000 max_fails=3 fail_timeout=30s;
+    }
+
+    server {
+        listen 80;
+        listen 443 ssl http2;
+        server_name trading.example.com;
+
+        ssl_certificate /etc/ssl/certs/trading.crt;
+        ssl_certificate_key /etc/ssl/private/trading.key;
+
+        # Security Headers
+        add_header X-Frame-Options DENY;
+        add_header X-Content-Type-Options nosniff;
+        add_header X-XSS-Protection "1; mode=block";
+        add_header Strict-Transport-Security "max-age=31536000";
+
+        # Dashboard
+        location / {
+            proxy_pass http://dashboard;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # WebSocket Support
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+
+        # API
+        location /api/ {
+            proxy_pass http://api/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # Rate limiting
+            limit_req zone=api burst=20 nodelay;
+        }
+
+        # Health checks
+        location /health {
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+    }
+
+    # Rate limiting configuration
+    http {
+        limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: trading-platform
+  labels:
+    app: prometheus
+    component: config
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'trading-platform'
+
+    rule_files:
+      - "/etc/prometheus/rules/*.yml"
+
+    scrape_configs:
+      # Kubernetes API server
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: default;kubernetes;https
+
+      # Trading Platform Services
+      - job_name: 'orchestrator'
+        static_configs:
+          - targets: ['orchestrator-service:8080']
+        metrics_path: '/metrics'
+
+      - job_name: 'dashboard'
+        static_configs:
+          - targets: ['dashboard-service:8080']
+        metrics_path: '/metrics'
+
+      - job_name: 'api'
+        static_configs:
+          - targets: ['api-service:8080']
+        metrics_path: '/metrics'
+
+      - job_name: 'worker'
+        static_configs:
+          - targets: ['worker-service:8080']
+        metrics_path: '/metrics'
+
+      # Infrastructure
+      - job_name: 'postgres'
+        static_configs:
+          - targets: ['postgres-exporter:9187']
+
+      - job_name: 'redis'
+        static_configs:
+          - targets: ['redis-exporter:9121']
+
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+              - alertmanager:9093

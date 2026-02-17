@@ -1,0 +1,94 @@
+# ===============================================
+# ELASTICSEARCH CONFIGURATION
+# ===============================================
+# High-performance search and analytics for trading logs
+
+# Cluster configuration
+cluster.name: trading-platform-logs
+node.name: ${HOSTNAME}
+node.roles: [ master, data, ingest ]
+
+# Network configuration
+network.host: 0.0.0.0
+http.port: 9200
+transport.port: 9300
+
+# Discovery configuration for Kubernetes
+discovery.seed_hosts: ["elasticsearch-discovery"]
+cluster.initial_master_nodes: ["elasticsearch-0", "elasticsearch-1", "elasticsearch-2"]
+
+# Path configuration
+path.data: /usr/share/elasticsearch/data
+path.logs: /usr/share/elasticsearch/logs
+
+# Memory configuration
+bootstrap.memory_lock: true
+
+# Security configuration
+xpack.security.enabled: false
+xpack.security.transport.ssl.enabled: false
+xpack.security.http.ssl.enabled: false
+
+# Monitoring
+xpack.monitoring.enabled: true
+xpack.monitoring.collection.enabled: true
+
+# Index lifecycle management
+xpack.ilm.enabled: true
+
+# Performance tuning for trading workloads
+indices.memory.index_buffer_size: 30%
+indices.queries.cache.size: 40%
+indices.fielddata.cache.size: 40%
+
+# Thread pools for high-throughput ingestion
+thread_pool:
+  write:
+    size: 8
+    queue_size: 1000
+  search:
+    size: 13
+    queue_size: 1000
+
+# Index settings for trading logs
+index:
+  number_of_shards: 3
+  number_of_replicas: 1
+  refresh_interval: 5s
+  max_result_window: 10000
+
+# Heap size (set in jvm.options or environment)
+# -Xms2g
+# -Xmx2g
+
+# Disk threshold settings
+cluster.routing.allocation.disk.threshold_enabled: true
+cluster.routing.allocation.disk.watermark.low: 90%
+cluster.routing.allocation.disk.watermark.high: 95%
+cluster.routing.allocation.disk.watermark.flood_stage: 99%
+
+# Slow log configuration
+index.search.slowlog.threshold.query.warn: 2s
+index.search.slowlog.threshold.query.info: 1s
+index.search.slowlog.threshold.fetch.warn: 1s
+index.search.slowlog.threshold.fetch.info: 500ms
+index.indexing.slowlog.threshold.index.warn: 2s
+index.indexing.slowlog.threshold.index.info: 1s
+
+# Circuit breaker settings
+indices.breaker.total.limit: 95%
+indices.breaker.fielddata.limit: 60%
+indices.breaker.request.limit: 40%
+
+# Recovery settings for faster startup
+indices.recovery.max_bytes_per_sec: 100mb
+cluster.routing.allocation.node_concurrent_recoveries: 6
+
+# Action settings
+action.destructive_requires_name: true
+
+# Disable swapping
+bootstrap.memory_lock: true
+
+# JVM settings optimization
+processors: 4

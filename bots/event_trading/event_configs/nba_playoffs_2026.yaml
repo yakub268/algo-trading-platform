@@ -1,0 +1,89 @@
+event:
+  name: "NBA Playoffs 2026"
+  id: nba_playoffs_2026
+  sport: basketball
+  espn_league: nba
+
+timing:
+  start: "2026-04-18T12:00:00-06:00"
+  end: "2026-06-20T23:00:00-06:00"
+  poll_interval: 30
+
+kalshi:
+  series_tickers: [KXNBA, KXNBAP, KXNBAF]
+  search_keywords: [nba playoffs, nba finals, nba champion, western conference, eastern conference, mvp]
+
+risk:
+  max_exposure: 500
+  max_single_trade: 50
+  circuit_breaker_loss: 150
+
+odds:
+  sport_key: basketball_nba
+  bookmakers: [draftkings, fanduel, betmgm, caesars, pointsbet]
+
+sentiment:
+  subreddits: [nba, sportsbook, NBABetting]
+  news_queries: ["nba playoffs", "nba finals", "playoff injury"]
+  teams: [Celtics, Thunder, Nuggets, Bucks, Timberwolves, Knicks, Cavaliers, Warriors]
+
+triggers:
+  BLOWOUT_EARLY:
+    action: buy
+    side: "no"
+    target: favorite_spread
+    max_contracts: 20
+    description: "Favorite up 20+ in first half"
+
+  UPSET_ALERT:
+    action: buy
+    side: "yes"
+    target: underdog_ml
+    max_contracts: 25
+    description: "Lower seed leading by 10+ at halftime"
+
+  CLOSE_GAME_HALF:
+    action: buy
+    side: "yes"
+    target: underdog_ml
+    max_contracts: 15
+    description: "Within 5 at halftime — back the dog"
+
+  BUZZER_BEATER:
+    action: buy
+    side: "yes"
+    target: game_total_over
+    max_contracts: 10
+    description: "Within 3 in final 2 minutes — OT likely"
+
+  SCORING_RUN:
+    action: buy
+    side: "yes"
+    target: team_ml
+    max_contracts: 15
+    description: "15-0 or larger run — momentum shift"
+
+  COMEBACK_ALERT:
+    action: buy
+    side: "yes"
+    target: underdog_ml
+    max_contracts: 20
+    description: "Team erases 15+ deficit"
+
+  ELIMINATION_GAME:
+    action: buy
+    side: "yes"
+    target: trailing_team_ml
+    max_contracts: 20
+    description: "Team facing elimination, down 3-2 or 3-1"
+
+  BLOWOUT_GARBAGE:
+    action: buy
+    side: "no"
+    target: total_points_over
+    max_contracts: 15
+    description: "30+ point lead — starters pulled, pace slows"
+
+espn:
+  date: ""
+  teams: []

@@ -1,0 +1,412 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "last_updated": "2026-01-28",
+    "author": "Trading Bot Arsenal",
+    "description": "Comprehensive library of documented trading strategies with verified track records"
+  },
+  "strategies": [
+    {
+      "id": "rsi2_mean_reversion",
+      "name": "RSI-2 Mean Reversion",
+      "category": "mean_reversion",
+      "asset_class": ["stocks", "etf"],
+      "timeframe": "daily",
+      "entry_rules": [
+        "RSI(2) < 10 (extremely oversold)",
+        "Price > SMA(200) (long-term uptrend filter)"
+      ],
+      "exit_rules": [
+        "RSI(2) > 90 (overbought)",
+        "Price > SMA(5) (price recovered)",
+        "Stop loss at 3%"
+      ],
+      "parameters": {
+        "rsi_period": 2,
+        "oversold_threshold": 10,
+        "overbought_threshold": 90,
+        "trend_sma": 200,
+        "exit_sma": 5,
+        "stop_loss_pct": 0.03
+      },
+      "documented_performance": {
+        "source": "Larry Connors - High Probability ETF Trading",
+        "sharpe_ratio": 1.18,
+        "win_rate": 0.75,
+        "annual_return": 0.30,
+        "max_drawdown": 0.35,
+        "avg_holding_period_days": 4
+      },
+      "validation_status": "backtested",
+      "implementation_file": "strategies/rsi2_mean_reversion.py",
+      "notes": "Works best on liquid ETFs (SPY, QQQ). NOT for intraday use. Requires trend filter to avoid catching falling knives.",
+      "risk_level": "medium"
+    },
+    {
+      "id": "cumulative_rsi",
+      "name": "Cumulative RSI Strategy",
+      "category": "mean_reversion",
+      "asset_class": ["stocks", "etf"],
+      "timeframe": "daily",
+      "entry_rules": [
+        "2-day cumulative RSI(2) < 10",
+        "Price > SMA(200)"
+      ],
+      "exit_rules": [
+        "2-day cumulative RSI(2) > 65",
+        "Stop loss at 3%"
+      ],
+      "parameters": {
+        "rsi_period": 2,
+        "cumulative_days": 2,
+        "entry_threshold": 10,
+        "exit_threshold": 65,
+        "trend_sma": 200,
+        "stop_loss_pct": 0.03
+      },
+      "documented_performance": {
+        "source": "Quantitativo Research",
+        "sharpe_ratio": 1.18,
+        "win_rate": 0.65,
+        "annual_return": 0.303,
+        "max_drawdown": 0.35
+      },
+      "validation_status": "backtested",
+      "implementation_file": "strategies/cumulative_rsi.py",
+      "notes": "Enhanced version of RSI-2 that requires sustained oversold condition",
+      "risk_level": "medium"
+    },
+    {
+      "id": "macd_rsi_combo",
+      "name": "MACD + RSI Combined Strategy",
+      "category": "momentum",
+      "asset_class": ["stocks", "etf", "forex"],
+      "timeframe": "daily",
+      "entry_rules": [
+        "MACD line crosses above signal line",
+        "RSI(14) between 30-50 (not overbought)",
+        "Price > SMA(50) (uptrend)"
+      ],
+      "exit_rules": [
+        "MACD line crosses below signal line",
+        "RSI(14) > 70 (overbought)",
+        "Stop loss at 3%"
+      ],
+      "parameters": {
+        "macd_fast": 12,
+        "macd_slow": 26,
+        "macd_signal": 9,
+        "rsi_period": 14,
+        "rsi_entry_low": 30,
+        "rsi_entry_high": 50,
+        "rsi_exit": 70,
+        "trend_sma": 50,
+        "stop_loss_pct": 0.03
+      },
+      "documented_performance": {
+        "source": "Multiple backtest studies",
+        "sharpe_ratio": 0.45,
+        "win_rate": 0.82,
+        "annual_return": 0.20,
+        "max_drawdown": 0.22
+      },
+      "validation_status": "backtested",
+      "implementation_file": "strategies/macd_rsi_combo.py",
+      "notes": "High win rate but lower Sharpe. RSI filter dramatically improves pure MACD performance.",
+      "risk_level": "low"
+    },
+    {
+      "id": "funding_rate_arbitrage",
+      "name": "Crypto Funding Rate Arbitrage",
+      "category": "arbitrage",
+      "asset_class": ["crypto"],
+      "timeframe": "8_hours",
+      "entry_rules": [
+        "Funding rate > 0.02% per 8-hour period",
+        "Spot-futures spread < 0.5%",
+        "Sufficient liquidity on both sides"
+      ],
+      "exit_rules": [
+        "Funding rate turns negative",
+        "Spread exceeds 0.5%",
+        "Max holding period: 7 days"
+      ],
+      "parameters": {
+        "min_funding_rate": 0.0002,
+        "max_spread": 0.005,
+        "max_holding_days": 7,
+        "position_size_pct": 0.20,
+        "leverage": 2
+      },
+      "documented_performance": {
+        "source": "Multiple exchange studies",
+        "sharpe_ratio": null,
+        "win_rate": 0.90,
+        "annual_return": 0.25,
+        "max_drawdown": 0.02
+      },
+      "validation_status": "live_tested",
+      "implementation_file": "bots/funding_rate_arbitrage.py",
+      "notes": "Market-neutral strategy. Main risk is exchange counterparty risk. 15-30% realistic APY.",
+      "risk_level": "low"
+    },
+    {
+      "id": "bollinger_squeeze",
+      "name": "Bollinger Band Squeeze Strategy",
+      "category": "volatility_breakout",
+      "asset_class": ["stocks", "etf", "crypto"],
+      "timeframe": "daily",
+      "entry_rules": [
+        "Bollinger Band width at 6-month low (squeeze)",
+        "Price breaks above upper band",
+        "Volume > 1.5x average (confirmation)"
+      ],
+      "exit_rules": [
+        "Price closes below middle band",
+        "Supertrend indicator turns bearish",
+        "Stop loss at 3%"
+      ],
+      "parameters": {
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "squeeze_percentile": 0.20,
+        "volume_multiplier": 1.5,
+        "stop_loss_pct": 0.03
+      },
+      "documented_performance": {
+        "source": "John Bollinger / Various studies",
+        "sharpe_ratio": null,
+        "win_rate": 0.54,
+        "annual_return": 0.25,
+        "max_drawdown": 0.25
+      },
+      "validation_status": "backtested",
+      "implementation_file": "strategies/bollinger_squeeze.py",
+      "notes": "Requires additional confirmation. Pure BB strategies underperform without filters.",
+      "risk_level": "medium"
+    },
+    {
+      "id": "pre_fomc_drift",
+      "name": "Pre-FOMC Announcement Drift",
+      "category": "event_driven",
+      "asset_class": ["stocks"],
+      "timeframe": "intraday",
+      "entry_rules": [
+        "Enter SPY long 24 hours before FOMC announcement",
+        "Market in normal conditions (VIX < 25)"
+      ],
+      "exit_rules": [
+        "Exit at FOMC announcement time",
+        "Stop loss at 2%"
+      ],
+      "parameters": {
+        "entry_hours_before": 24,
+        "max_vix": 25,
+        "stop_loss_pct": 0.02,
+        "position_size_pct": 0.10
+      },
+      "documented_performance": {
+        "source": "Lucca & Moench (NY Fed) 2015",
+        "sharpe_ratio": 1.14,
+        "win_rate": 0.65,
+        "annual_return": 0.09,
+        "max_drawdown": 0.15,
+        "notes": "80% of equity risk premium 1994-2011"
+      },
+      "validation_status": "academic",
+      "implementation_file": "bots/alpaca_fomc_trader.py",
+      "notes": "Effect may have declined post-2016. Trades only 8x per year.",
+      "risk_level": "low"
+    },
+    {
+      "id": "earnings_momentum",
+      "name": "Post-Earnings Announcement Drift (PEAD)",
+      "category": "event_driven",
+      "asset_class": ["stocks"],
+      "timeframe": "daily",
+      "entry_rules": [
+        "Earnings surprise > 5% (actual vs estimate)",
+        "Market cap > $1B",
+        "Average volume > 500K",
+        "Enter day after announcement"
+      ],
+      "exit_rules": [
+        "Hold for 5 trading days",
+        "Stop loss at 5%"
+      ],
+      "parameters": {
+        "min_surprise_pct": 0.05,
+        "min_market_cap": 1000000000,
+        "min_volume": 500000,
+        "holding_days": 5,
+        "stop_loss_pct": 0.05,
+        "position_size_pct": 0.05,
+        "max_positions": 5
+      },
+      "documented_performance": {
+        "source": "Bernard & Thomas (1989)",
+        "sharpe_ratio": 1.16,
+        "win_rate": 0.55,
+        "annual_return": 0.11,
+        "max_drawdown": 0.04
+      },
+      "validation_status": "academic",
+      "implementation_file": "bots/earnings_bot.py",
+      "notes": "Effect strongest in small-caps with low analyst coverage. Declining in efficient markets.",
+      "risk_level": "medium"
+    },
+    {
+      "id": "london_breakout",
+      "name": "London Breakout Forex Strategy",
+      "category": "breakout",
+      "asset_class": ["forex"],
+      "timeframe": "intraday",
+      "entry_rules": [
+        "Calculate Asian session range (00:00-08:00 UTC)",
+        "Buy stop above range high + buffer",
+        "Sell stop below range low - buffer",
+        "Enter at London open (08:00 UTC)"
+      ],
+      "exit_rules": [
+        "Take profit at 1.5x range",
+        "Stop loss at opposite boundary",
+        "Close all positions by 16:00 UTC"
+      ],
+      "parameters": {
+        "asian_start_utc": "00:00",
+        "asian_end_utc": "08:00",
+        "buffer_pips": 5,
+        "take_profit_multiplier": 1.5,
+        "min_range_pips": 20,
+        "max_range_pips": 80
+      },
+      "documented_performance": {
+        "source": "Various forex studies",
+        "sharpe_ratio": null,
+        "win_rate": 0.57,
+        "annual_return": 0.15,
+        "max_drawdown": 0.15
+      },
+      "validation_status": "backtested",
+      "implementation_file": "bots/oanda_london_breakout.py",
+      "notes": "Best on EUR/USD, GBP/USD. Filter out days with already-moved Asian ranges.",
+      "risk_level": "medium"
+    },
+    {
+      "id": "iron_condor",
+      "name": "SPX Iron Condor Strategy",
+      "category": "options_income",
+      "asset_class": ["options"],
+      "timeframe": "weekly",
+      "entry_rules": [
+        "Sell OTM put spread and OTM call spread",
+        "Delta of short strikes ~ 0.10-0.16",
+        "Enter when VIX > 15 (premium rich)",
+        "DTE: 30-45 days optimal"
+      ],
+      "exit_rules": [
+        "Close at 50% profit",
+        "Close if tested (price near short strike)",
+        "Close at 21 DTE if not profitable"
+      ],
+      "parameters": {
+        "short_delta": 0.12,
+        "wing_width": 5,
+        "dte_target": 45,
+        "profit_target_pct": 0.50,
+        "min_vix": 15,
+        "max_loss_pct": 2.0
+      },
+      "documented_performance": {
+        "source": "Options Trading IQ / spintwig backtests",
+        "sharpe_ratio": null,
+        "win_rate": 0.827,
+        "annual_return": 0.30,
+        "max_drawdown": 0.25,
+        "avg_winner": 1052,
+        "avg_loser": 2181
+      },
+      "validation_status": "backtested",
+      "implementation_file": null,
+      "notes": "Requires $5K+ capital. High win rate but tail risk. Manage position size carefully.",
+      "risk_level": "high"
+    },
+    {
+      "id": "time_series_momentum",
+      "name": "Time Series Momentum (Trend Following)",
+      "category": "momentum",
+      "asset_class": ["futures", "etf"],
+      "timeframe": "monthly",
+      "entry_rules": [
+        "12-month return > 0: Go long",
+        "12-month return < 0: Go short (or flat)",
+        "Position size scaled by inverse volatility"
+      ],
+      "exit_rules": [
+        "Rebalance monthly",
+        "Exit when signal reverses"
+      ],
+      "parameters": {
+        "lookback_months": 12,
+        "volatility_target": 0.10,
+        "rebalance_frequency": "monthly"
+      },
+      "documented_performance": {
+        "source": "Moskowitz, Ooi & Pedersen (2012)",
+        "sharpe_ratio": 1.1,
+        "win_rate": 0.55,
+        "annual_return": 0.14,
+        "max_drawdown": 0.25
+      },
+      "validation_status": "academic",
+      "implementation_file": null,
+      "notes": "Works across 58 futures contracts. Provides crisis alpha. Best in trending markets.",
+      "risk_level": "medium"
+    }
+  ],
+  "validation_methods": {
+    "walk_forward": {
+      "description": "Rolling window optimization to detect overfitting",
+      "train_window_days": 252,
+      "test_window_days": 63,
+      "roll_days": 21,
+      "min_windows": 5
+    },
+    "monte_carlo": {
+      "description": "Shuffle trade sequences to test robustness",
+      "iterations": 1000,
+      "skip_rate_range": [0.05, 0.15],
+      "pass_criteria": {
+        "min_profitable_pct": 0.95,
+        "min_median_sharpe": 0.5
+      }
+    },
+    "stress_test": {
+      "description": "Test against historical crisis periods",
+      "crisis_periods": [
+        "COVID Crash (2020-02 to 2020-03)",
+        "Crypto Winter (2022)",
+        "Flash Crash (2010-05-06)",
+        "GFC (2008-09 to 2009-03)"
+      ],
+      "max_acceptable_drawdown": 0.30
+    }
+  },
+  "risk_levels": {
+    "low": {
+      "expected_drawdown": "< 15%",
+      "sharpe_target": "> 1.0",
+      "suitable_for": "Core portfolio allocation"
+    },
+    "medium": {
+      "expected_drawdown": "15-25%",
+      "sharpe_target": "> 0.7",
+      "suitable_for": "Growth allocation"
+    },
+    "high": {
+      "expected_drawdown": "25-40%",
+      "sharpe_target": "> 0.5",
+      "suitable_for": "Speculative allocation only"
+    }
+  }
+}

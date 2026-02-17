@@ -1,0 +1,77 @@
+# ============================================================
+# Event Config Template
+# Copy this file and customize for your event.
+# All fields documented below.
+# ============================================================
+
+event:
+  # Display name for the event
+  name: "Event Name Here"
+  # Unique ID (lowercase, underscores, used in CLI: --event <id>)
+  id: event_id_here
+  # Sport type: football, basketball, baseball, hockey, soccer, politics, entertainment
+  sport: football
+  # ESPN API league key (for live score polling)
+  # Examples: nfl, mens-college-basketball, mlb, nba, nhl
+  espn_league: nfl
+
+timing:
+  # Event window (ISO 8601 with timezone offset)
+  start: "2026-01-01T12:00:00-06:00"
+  end: "2026-01-01T23:00:00-06:00"
+  # Seconds between market scan cycles
+  poll_interval: 30
+
+kalshi:
+  # Series tickers to search on Kalshi (prefix-based, e.g. KXSB, KXNCAA)
+  series_tickers: []
+  # Keywords to search in market titles
+  search_keywords: []
+
+# Risk limits for this event
+risk:
+  # Maximum total dollar exposure for this event
+  max_exposure: 500
+  # Maximum single trade size in dollars
+  max_single_trade: 50
+  # Circuit breaker: pause trading if total losses exceed this
+  circuit_breaker_loss: 100
+
+# Odds API settings (optional — requires ODDS_API_KEY env var)
+odds:
+  # Sport key for The Odds API
+  # See: https://the-odds-api.com/liveapi/guides/v4/
+  sport_key: ""
+  # Bookmakers to compare (empty = all US books)
+  bookmakers: []
+
+# Sentiment monitoring (optional)
+sentiment:
+  # Reddit subreddits to scan
+  subreddits: []
+  # News search queries
+  news_queries: []
+  # Team names to track for injury alerts
+  teams: []
+
+# Game trigger → trade action mappings (optional)
+# Maps trigger_name from game_triggers table to trade behavior
+triggers: {}
+  # Example:
+  # BLOWOUT_EARLY:
+  #   action: "buy"
+  #   side: "no"
+  #   target: "favorite_ml"
+  #   max_contracts: 20
+  # CLOSE_GAME:
+  #   action: "buy"
+  #   side: "yes"
+  #   target: "underdog_ml"
+  #   max_contracts: 10
+
+# ESPN game finder settings (optional)
+espn:
+  # Date to search for event (YYYYMMDD)
+  date: ""
+  # Team abbreviations to match
+  teams: []

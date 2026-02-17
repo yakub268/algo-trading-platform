@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="description" content="Mobile trading dashboard for real-time portfolio management and trading oversight">
+
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Trading Bot">
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-32x32.png') }}" sizes="32x32">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-180x180.png') }}">
+    <link rel="manifest" href="/manifest.json">
+
+    <title>Mobile Trading Dashboard</title>
+
+    <!-- Preload critical resources -->
+    <link rel="preload" href="{{ url_for('static', filename='css/mobile-dashboard.css') }}" as="style">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js" as="script">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-dashboard.css') }}">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">📱 Trading Bot</div>
+            <div class="header-actions">
+                <div class="connection-status">
+                    <div class="status-dot"></div>
+                    <span>Offline</span>
+                </div>
+                <button class="theme-toggle" title="Toggle theme">🌙</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Portfolio Overview Section -->
+            <section id="portfolio" class="dashboard-section">
+                <div class="dashboard-grid">
+                    <!-- Portfolio Summary Widget -->
+                    <div class="widget portfolio-summary">
+                        <div class="widget-header">
+                            <h2 class="widget-title">Portfolio Summary</h2>
+                            <div class="widget-actions">
+                                <span class="last-updated">Updated: --:--</span>
+                            </div>
+                        </div>
+                        <div class="widget-content">
+                            <div class="portfolio-metrics">
+                                <div class="metric">
+                                    <div class="metric-value total-value">$0.00</div>
+                                    <div class="metric-label">Total Value</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value day-pnl">$0.00</div>
+                                    <div class="metric-label">Day P&L</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value day-pnl-percent">0.00%</div>
+                                    <div class="metric-label">Day P&L %</div>
+                                </div>
+                            </div>
+
+                            <!-- Portfolio Performance Chart -->
+                            <div class="chart-container">
+                                <canvas id="performanceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asset Allocation Widget -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3 class="widget-title">Asset Allocation</h3>
+                        </div>
+                        <div class="widget-content">
+                            <div class="chart-container">
+                                <canvas id="allocationChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Portfolio Heatmap Widget -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3 class="widget-title">Exchange Performance</h3>
+                        </div>
+                        <div class="widget-content">
+                            <div class="heatmap-container">
+                                <!-- Heatmap cells will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Positions Section -->
+            <section id="positions" class="dashboard-section" style="display: none;">
+                <div class="dashboard-grid">
+                    <!-- Active Positions Widget -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3 class="widget-title">Active Positions</h3>
+                            <div class="widget-actions">
+                                <button class="btn btn-sm" onclick="refreshPositions()">Refresh</button>
+                            </div>
+                        </div>
+                        <div class="widget-content">
+                            <div class="positions-container">
+                                <table class="positions-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Symbol</th>
+                                            <th>Qty</th>
+                                            <th>Price</th>
+                                            <th>P&L</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="positions-tbody">
+                                        <!-- Positions will be populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Trade Widget -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3 class="widget-title">Quick Trade</h3>
+                        </div>
+                        <div class="widget-content">
+                            <form class="quick-trade-form">
+                                <div class="form-group">
+                                    <label class="form-label">Symbol</label>
+                                    <input type="text" class="form-input" placeholder="AAPL" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Side</label>
+                                    <select class="form-select" required>
+                                        <option value="">Select Side</option>
+                                        <option value="buy">Buy</option>
+                                        <option value="sell">Sell</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Quantity</label>
+                                    <input type="number" class="form-input" placeholder="100" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Order Type</label>
+                                    <select class="form-select" required>
+                                        <option value="">Select Type</option>
+                                        <option value="market">Market</option>
+                                        <option value="limit">Limit</option>
+                                        <option value="stop">Stop</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Price (for limit orders)</label>
+                                    <input type="number" class="form-input" placeholder="0.00" step="0.01">
+                                </div>
+                                <button type="submit" class="btn btn-primary">Place Order</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Alerts Section -->
+            <section id="alerts" class="dashboard-section" style="display: none;">
+                <div class="dashboard-grid">
+                    <!-- Active Alerts Widget -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3 class="widget-title">Active Alerts</h3>
+                            <div class="widget-actions">
+                                <span class="badge alerts-count">0</span>
+                            </div>
+                        </div>
+                        <div class="widget-content">
+                            <div class="alerts-container">
+                                <!-- Alerts will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alert Configuration Widget -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3 class="widget-title">Alert Settings</h3>
+                        </div>
+                        <div class="widget-content">
+                            <div class="alert-settings">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <input type="checkbox" id="push-notifications" checked>
+                                        Push Notifications
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <input type="checkbox" id="voice-alerts">
+                                        Voice Alerts
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Portfolio Loss Threshold (%)</label>
+                                    <input type="number" class="form-input" value="5" step="0.1">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Position Size Threshold (%)</label>
+                                    <input type="number" class="form-input" value="10" step="0.1">
+                                </div>
+                                <button class="btn btn-primary">Save Settings</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bots Section -->
+            <section id="bots" class="dashboard-section" style="display: none;">
+                <div class="dashboard-grid">
+                    <!-- Bot Control Panel Widget -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3 class="widget-title">Trading Bots</h3>
+                        </div>
+                        <div class="widget-content">
+                            <div class="bot-controls">
+                                <!-- Freqtrade Bot -->
+                                <div class="bot-item">
+                                    <div class="bot-info">
+                                        <h4>Freqtrade</h4>
+                                        <span class="bot-status" data-bot="freqtrade">Stopped</span>
+                                    </div>
+                                    <div class="bot-actions">
+                                        <button class="btn btn-success btn-sm bot-control" data-bot="freqtrade" data-action="start">Start</button>
+                                        <button class="btn btn-danger btn-sm bot-control" data-bot="freqtrade" data-action="stop">Stop</button>
+                                        <button class="btn btn-warning btn-sm bot-control" data-bot="freqtrade" data-action="restart">Restart</button>
+                                    </div>
+                                </div>
+
+                                <!-- Strategy Bot -->
+                                <div class="bot-item">
+                                    <div class="bot-info">
+                                        <h4>Multi-Market Strategy</h4>
+                                        <span class="bot-status" data-bot="strategy">Stopped</span>
+                                    </div>
+                                    <div class="bot-actions">
+                                        <button class="btn btn-success btn-sm bot-control" data-bot="strategy" data-action="start">Start</button>
+                                        <button class="btn btn-danger btn-sm bot-control" data-bot="strategy" data-action="stop">Stop</button>
+                                        <button class="btn btn-warning btn-sm bot-control" data-bot="strategy" data-action="restart">Restart</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bot Performance Widget -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3 class="widget-title">Bot Performance</h3>
+                        </div>
+                        <div class="widget-content">
+                            <div class="chart-container">
+                                <canvas id="botPerformanceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Performance Section -->
+            <section id="performance" class="dashboard-section" style="display: none;">
+                <div class="dashboard-grid">
+                    <!-- Performance Metrics Widget -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3 class="widget-title">Performance Metrics</h3>
+                        </div>
+                        <div class="widget-content">
+                            <div class="performance-metrics">
+                                <div class="metric">
+                                    <div class="metric-value sharpe-ratio">0.00</div>
+                                    <div class="metric-label">Sharpe Ratio</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value max-drawdown">0.00%</div>
+                                    <div class="metric-label">Max Drawdown</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value win-rate">0.00%</div>
+                                    <div class="metric-label">Win Rate</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- P&L Distribution Widget -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3 class="widget-title">Daily P&L</h3>
+                        </div>
+                        <div class="widget-content">
+                            <div class="chart-container">
+                                <canvas id="pnlChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Emergency Stop Button -->
+    <button class="emergency-stop" title="Emergency Stop All Trading">STOP</button>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="#" class="nav-item active" data-section="portfolio">
+            <div class="nav-icon">📊</div>
+            <div class="nav-label">Portfolio</div>
+        </a>
+        <a href="#" class="nav-item" data-section="positions">
+            <div class="nav-icon">💼</div>
+            <div class="nav-label">Positions</div>
+        </a>
+        <a href="#" class="nav-item" data-section="alerts">
+            <div class="nav-icon">🔔</div>
+            <div class="nav-label">Alerts</div>
+        </a>
+        <a href="#" class="nav-item" data-section="bots">
+            <div class="nav-icon">🤖</div>
+            <div class="nav-label">Bots</div>
+        </a>
+        <a href="#" class="nav-item" data-section="performance">
+            <div class="nav-icon">📈</div>
+            <div class="nav-label">Analytics</div>
+        </a>
+    </nav>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <!-- Trade Execution Modal -->
+    <div class="modal-overlay" id="tradeModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Execute Trade</h3>
+                <button class="modal-close" onclick="closeTradeModal()">&times;</button>
+            </div>
+            <div class="modal-content">
+                <form class="trade-form">
+                    <div class="form-group">
+                        <label class="form-label">Exchange</label>
+                        <select class="form-select" name="exchange" required>
+                            <option value="">Select Exchange</option>
+                            <option value="alpaca">Alpaca</option>
+                            <option value="freqtrade">Freqtrade</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Symbol</label>
+                        <input type="text" class="form-input" name="symbol" placeholder="AAPL" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Side</label>
+                        <select class="form-select" name="side" required>
+                            <option value="">Select Side</option>
+                            <option value="buy">Buy</option>
+                            <option value="sell">Sell</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Quantity</label>
+                        <input type="number" class="form-input" name="quantity" placeholder="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Order Type</label>
+                        <select class="form-select" name="type" required>
+                            <option value="">Select Type</option>
+                            <option value="market">Market</option>
+                            <option value="limit">Limit</option>
+                            <option value="stop">Stop</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Price (optional)</label>
+                        <input type="number" class="form-input" name="price" placeholder="0.00" step="0.01">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn" onclick="closeTradeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Execute Trade</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+    <!-- Socket.IO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+
+    <!-- Main Dashboard Script -->
+    <script src="{{ url_for('static', filename='js/mobile-dashboard.js') }}"></script>
+
+    <!-- Additional JavaScript -->
+    <script>
+        // Additional utility functions
+        function closeTradeModal() {
+            document.getElementById('tradeModal').classList.remove('active');
+        }
+
+        function openTradeModal() {
+            document.getElementById('tradeModal').classList.add('active');
+        }
+
+        function refreshPositions() {
+            if (window.dashboard) {
+                window.dashboard.refreshAllData();
+            }
+        }
+
+        // Handle trade form submission
+        document.querySelector('.trade-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const tradeData = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/api/trade/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(tradeData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    window.dashboard.showToast('Trade submitted successfully', 'success');
+                    closeTradeModal();
+                    e.target.reset();
+                } else {
+                    window.dashboard.showToast(result.error || 'Trade failed', 'error');
+                }
+            } catch (error) {
+                window.dashboard.showToast('Network error', 'error');
+            }
+        });
+
+        // Handle quick trade form
+        document.querySelector('.quick-trade-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const tradeData = Object.fromEntries(formData.entries());
+            tradeData.exchange = 'alpaca'; // Default to Alpaca for quick trades
+
+            try {
+                const response = await fetch('/api/trade/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(tradeData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    window.dashboard.showToast('Quick trade submitted', 'success');
+                    e.target.reset();
+                } else {
+                    window.dashboard.showToast(result.error || 'Trade failed', 'error');
+                }
+            } catch (error) {
+                window.dashboard.showToast('Network error', 'error');
+            }
+        });
+
+        // Handle alert settings
+        document.querySelector('.alert-settings button').addEventListener('click', () => {
+            // Save alert settings to localStorage
+            const pushNotifications = document.getElementById('push-notifications').checked;
+            const voiceAlerts = document.getElementById('voice-alerts').checked;
+
+            localStorage.setItem('push-notifications', pushNotifications);
+            localStorage.setItem('voice-alerts', voiceAlerts);
+
+            if (window.dashboard) {
+                window.dashboard.voiceAlertsEnabled = voiceAlerts;
+            }
+
+            window.dashboard.showToast('Settings saved', 'success');
+        });
+
+        // Load saved settings
+        document.addEventListener('DOMContentLoaded', () => {
+            const pushNotifications = localStorage.getItem('push-notifications') !== 'false';
+            const voiceAlerts = localStorage.getItem('voice-alerts') === 'true';
+
+            document.getElementById('push-notifications').checked = pushNotifications;
+            document.getElementById('voice-alerts').checked = voiceAlerts;
+        });
+
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 'r':
+                        e.preventDefault();
+                        if (window.dashboard) {
+                            window.dashboard.refreshAllData();
+                        }
+                        break;
+                    case 't':
+                        e.preventDefault();
+                        openTradeModal();
+                        break;
+                    case 'd':
+                        e.preventDefault();
+                        if (window.dashboard) {
+                            window.dashboard.toggleTheme();
+                        }
+                        break;
+                }
+            }
+
+            // Escape key to close modals
+            if (e.key === 'Escape') {
+                closeTradeModal();
+            }
+        });
+    </script>
+</body>
+</html>

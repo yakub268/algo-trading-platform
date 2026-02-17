@@ -1,0 +1,54 @@
+event:
+  name: "NFL Draft 2026"
+  id: nfl_draft_2026
+  sport: football
+  espn_league: nfl
+
+timing:
+  start: "2026-04-23T18:00:00-06:00"
+  end: "2026-04-25T23:00:00-06:00"
+  poll_interval: 60
+
+kalshi:
+  series_tickers: [KXNFLD, KXDRAFT, KXNFL]
+  search_keywords: [nfl draft, first pick, draft pick, number one pick, quarterback, top pick]
+
+risk:
+  max_exposure: 300
+  max_single_trade: 40
+  circuit_breaker_loss: 80
+
+odds:
+  sport_key: americanfootball_nfl
+  bookmakers: [draftkings, fanduel, betmgm, caesars]
+
+sentiment:
+  subreddits: [NFL_Draft, nfl, sportsbook]
+  news_queries: ["nfl draft", "mock draft", "draft pick", "trade up"]
+  teams: []
+
+triggers:
+  SURPRISE_PICK:
+    action: buy
+    side: "yes"
+    target: surprise_player
+    max_contracts: 20
+    description: "Unexpected player selected — market hasn't adjusted"
+
+  TRADE_UP:
+    action: buy
+    side: "yes"
+    target: traded_team_pick
+    max_contracts: 15
+    description: "Team trades up — they want a specific player"
+
+  QB_RUN:
+    action: buy
+    side: "yes"
+    target: quarterback_drafted
+    max_contracts: 15
+    description: "3+ QBs taken in first 10 picks"
+
+espn:
+  date: ""
+  teams: []

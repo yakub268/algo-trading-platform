@@ -1,0 +1,418 @@
+# ===============================================
+# ALTERNATIVE DATA INTEGRATION CONFIGURATION
+# ===============================================
+
+# Global Settings
+global:
+  enabled: true
+  max_concurrent_requests: 10
+  cache_size_mb: 1024  # 1GB cache
+  default_ttl_minutes: 5
+  data_directory: "data/altdata"
+
+# Data Quality Settings
+quality:
+  min_quality_score: 0.5
+  confidence_threshold: 0.3
+  enable_quality_monitoring: true
+  quality_reporting_interval_hours: 6
+
+# ===============================================
+# SOCIAL SENTIMENT ANALYSIS
+# ===============================================
+
+social_sentiment:
+  enabled: true
+
+  twitter:
+    enabled: true
+    rate_limit_per_minute: 300  # Twitter API v2 limits
+    min_followers: 1000
+    min_retweets: 5
+    min_likes: 10
+    influencers:
+      - "elonmusk"
+      - "michael_saylor"
+      - "cz_binance"
+      - "naval"
+      - "APompliano"
+      - "VitalikButerin"
+      - "cryptocurrency"
+      - "coindesk"
+    search_languages: ["en"]
+
+  reddit:
+    enabled: true
+    rate_limit_per_minute: 60
+    min_upvotes: 10
+    min_comments: 3
+    min_karma: 100
+    subreddits:
+      - "wallstreetbets"
+      - "investing"
+      - "stocks"
+      - "SecurityAnalysis"
+      - "ValueInvesting"
+      - "CryptoCurrency"
+      - "Bitcoin"
+      - "ethereum"
+      - "pennystocks"
+      - "options"
+      - "StockMarket"
+
+  discord:
+    enabled: false  # Requires bot setup
+    rate_limit_per_minute: 50
+    min_reactions: 2
+    min_message_length: 10
+    max_messages: 1000
+    vip_users: []  # Add Discord user IDs
+    target_servers: []  # Add Discord server IDs
+    target_channels: []  # Add Discord channel IDs
+
+# ===============================================
+# SATELLITE IMAGERY ANALYSIS
+# ===============================================
+
+satellite:
+  enabled: true
+  rate_limit_per_minute: 10  # Conservative for free APIs
+
+  # Commodity regions for agricultural monitoring
+  commodity_regions:
+    CORN:
+      - name: "Iowa"
+        lat: 41.8781
+        lon: -93.0977
+        radius: 200
+      - name: "Illinois"
+        lat: 40.6331
+        lon: -89.3985
+        radius: 200
+      - name: "Nebraska"
+        lat: 41.4925
+        lon: -99.9018
+        radius: 150
+
+    WHEAT:
+      - name: "Kansas"
+        lat: 38.5266
+        lon: -96.7265
+        radius: 200
+      - name: "North Dakota"
+        lat: 47.5514
+        lon: -101.0020
+        radius: 150
+
+    SOY:
+      - name: "Iowa"
+        lat: 41.8781
+        lon: -93.0977
+        radius: 200
+      - name: "Illinois"
+        lat: 40.6331
+        lon: -89.3985
+        radius: 200
+
+  # Economic activity monitoring regions
+  economic_regions:
+    CHINA_MANUFACTURING:
+      - name: "Shanghai"
+        lat: 31.2304
+        lon: 121.4737
+        type: "port"
+      - name: "Shenzhen"
+        lat: 22.3193
+        lon: 114.1694
+        type: "manufacturing"
+
+    US_ENERGY:
+      - name: "Permian Basin"
+        lat: 31.8457
+        lon: -102.3676
+        type: "oil"
+      - name: "Bakken"
+        lat: 47.7511
+        lon: -101.7777
+        type: "oil"
+
+# ===============================================
+# WEATHER PATTERN INTEGRATION
+# ===============================================
+
+weather:
+  enabled: true
+  rate_limit_per_minute: 60
+
+  # Weather impact sectors
+  impact_sectors:
+    energy:
+      - heating_degree_days
+      - cooling_degree_days
+      - wind_patterns
+      - solar_irradiance
+
+    agriculture:
+      - precipitation
+      - temperature_extremes
+      - drought_indicators
+      - growing_season_length
+
+    transportation:
+      - storm_systems
+      - ice_conditions
+      - visibility
+      - wind_speed
+
+# ===============================================
+# ECONOMIC CALENDAR & FRED DATA
+# ===============================================
+
+economic:
+  enabled: true
+  fred:
+    enabled: true
+    rate_limit_per_minute: 120  # FRED API limits
+
+    # Key economic indicators
+    indicators:
+      - series_id: "GDP"
+        name: "Gross Domestic Product"
+        frequency: "quarterly"
+        impact_level: "high"
+
+      - series_id: "UNRATE"
+        name: "Unemployment Rate"
+        frequency: "monthly"
+        impact_level: "high"
+
+      - series_id: "CPIAUCSL"
+        name: "Consumer Price Index"
+        frequency: "monthly"
+        impact_level: "high"
+
+      - series_id: "FEDFUNDS"
+        name: "Federal Funds Rate"
+        frequency: "monthly"
+        impact_level: "high"
+
+      - series_id: "DGS10"
+        name: "10-Year Treasury Rate"
+        frequency: "daily"
+        impact_level: "medium"
+
+# ===============================================
+# OPTIONS FLOW DETECTION
+# ===============================================
+
+options_flow:
+  enabled: true
+  rate_limit_per_minute: 30
+
+  # Unusual activity thresholds
+  thresholds:
+    volume_multiplier: 3.0  # 3x average volume
+    open_interest_multiplier: 2.0
+    min_premium: 10000  # $10k minimum premium
+
+  # Dark pool detection
+  dark_pool:
+    enabled: true
+    min_block_size: 10000  # Minimum shares for block trade
+
+  # Options flow sources
+  sources:
+    - "unusual_whales"
+    - "flow_algo"
+    - "cheddar_flow"
+
+# ===============================================
+# INSIDER TRADING TRACKING
+# ===============================================
+
+insider_trading:
+  enabled: true
+  rate_limit_per_minute: 20
+
+  # SEC filing types to monitor
+  filing_types:
+    - "4"   # Statement of Changes in Beneficial Ownership
+    - "3"   # Initial Statement of Beneficial Ownership
+    - "5"   # Annual Statement of Changes in Beneficial Ownership
+    - "8-K" # Current Report
+    - "10-K" # Annual Report
+    - "10-Q" # Quarterly Report
+
+  # Transaction thresholds
+  thresholds:
+    min_transaction_value: 50000  # $50k minimum
+    executive_multiplier: 2.0     # Weight executive trades higher
+
+# ===============================================
+# CRYPTO ON-CHAIN METRICS
+# ===============================================
+
+crypto_onchain:
+  enabled: true
+  rate_limit_per_minute: 30
+
+  # Blockchain networks to monitor
+  networks:
+    ethereum:
+      enabled: true
+      whale_threshold: 1000  # ETH
+      metrics:
+        - "active_addresses"
+        - "transaction_volume"
+        - "gas_prices"
+        - "defi_tvl"
+
+    bitcoin:
+      enabled: true
+      whale_threshold: 100   # BTC
+      metrics:
+        - "active_addresses"
+        - "hash_rate"
+        - "mining_difficulty"
+        - "lightning_network_capacity"
+
+# ===============================================
+# NEWS SENTIMENT WITH FINBERT
+# ===============================================
+
+news_sentiment:
+  enabled: true
+  rate_limit_per_minute: 100
+
+  # News sources
+  sources:
+    - name: "bloomberg"
+      weight: 1.0
+      credibility: 0.95
+
+    - name: "reuters"
+      weight: 1.0
+      credibility: 0.95
+
+    - name: "wsj"
+      weight: 0.9
+      credibility: 0.90
+
+    - name: "cnbc"
+      weight: 0.8
+      credibility: 0.80
+
+  # FinBERT model configuration
+  finbert:
+    model_name: "ProsusAI/finbert"
+    use_gpu: false  # Set to true if GPU available
+    batch_size: 16
+    max_length: 512
+
+# ===============================================
+# GOOGLE TRENDS ANALYSIS
+# ===============================================
+
+google_trends:
+  enabled: true
+  rate_limit_per_minute: 10  # Conservative for unofficial API
+
+  # Trending categories
+  categories:
+    - name: "Business & Finance"
+      category_id: 12
+
+    - name: "Cryptocurrency"
+      search_terms:
+        - "bitcoin"
+        - "ethereum"
+        - "crypto"
+        - "blockchain"
+
+  # Geographic regions
+  regions:
+    - "US"
+    - "GB"
+    - "DE"
+    - "JP"
+    - "KR"
+
+# ===============================================
+# COST MANAGEMENT
+# ===============================================
+
+cost_management:
+  enabled: true
+  daily_budget: 50.0  # $50 daily budget
+
+  # Cost per API call (estimates)
+  cost_per_call:
+    twitter: 0.001
+    reddit: 0.0005
+    satellite: 0.10
+    weather: 0.005
+    fred: 0.0  # Free
+    options_flow: 0.02
+    sec_filings: 0.001
+    blockchain: 0.01
+    news: 0.003
+    google_trends: 0.001
+
+  # Auto-disable expensive sources if budget exceeded
+  auto_disable_on_budget: true
+  budget_warning_threshold: 0.8  # 80%
+
+# ===============================================
+# CACHING CONFIGURATION
+# ===============================================
+
+caching:
+  enabled: true
+
+  # TTL by data source (minutes)
+  ttl_by_source:
+    twitter: 5
+    reddit: 10
+    discord: 2
+    satellite: 1440  # 24 hours
+    weather: 60
+    fred: 1440
+    options_flow: 5
+    insider_trading: 360  # 6 hours
+    crypto_onchain: 15
+    news: 30
+    google_trends: 60
+
+  # Compression settings
+  compression:
+    enabled: true
+    threshold_kb: 100
+    algorithm: "gzip"
+
+# ===============================================
+# MONITORING & ALERTING
+# ===============================================
+
+monitoring:
+  enabled: true
+
+  # Health check intervals (minutes)
+  health_check_interval: 15
+
+  # Alert thresholds
+  alerts:
+    error_rate_threshold: 0.1  # 10%
+    latency_threshold_ms: 10000  # 10 seconds
+    quality_score_threshold: 0.3
+
+  # Notification channels
+  notifications:
+    telegram:
+      enabled: false
+      bot_token: ""
+      chat_id: ""
+
+    email:
+      enabled: false
+      smtp_server: ""
+      recipients: []

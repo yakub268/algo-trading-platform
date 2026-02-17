@@ -1,0 +1,81 @@
+# ===============================================
+# KUBERNETES NAMESPACE CONFIGURATION
+# ===============================================
+# Isolated namespace for trading bot platform
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trading-platform
+  labels:
+    name: trading-platform
+    environment: production
+    tier: enterprise
+    app.kubernetes.io/name: trading-bot
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: kubernetes
+  annotations:
+    description: "Enterprise trading bot platform with microservices architecture"
+    security.policy: "strict"
+    monitoring.enabled: "true"
+---
+# ===============================================
+# RESOURCE QUOTAS AND LIMITS
+# ===============================================
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: trading-platform-quota
+  namespace: trading-platform
+spec:
+  hard:
+    # Compute Resources
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "50"
+    limits.memory: 80Gi
+
+    # Storage
+    requests.storage: 1Ti
+    persistentvolumeclaims: "20"
+
+    # Objects
+    pods: "100"
+    services: "50"
+    configmaps: "30"
+    secrets: "30"
+    ingresses: "10"
+
+    # Load Balancers
+    services.loadbalancers: "5"
+---
+# ===============================================
+# LIMIT RANGES FOR CONTAINERS
+# ===============================================
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: trading-platform-limits
+  namespace: trading-platform
+spec:
+  limits:
+  - default:
+      cpu: "2"
+      memory: "2Gi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "256Mi"
+    max:
+      cpu: "8"
+      memory: "16Gi"
+    min:
+      cpu: "50m"
+      memory: "128Mi"
+    type: Container
+  - default:
+      storage: "10Gi"
+    max:
+      storage: "500Gi"
+    min:
+      storage: "1Gi"
+    type: PersistentVolumeClaim

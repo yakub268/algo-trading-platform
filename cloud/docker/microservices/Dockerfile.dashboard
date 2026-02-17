@@ -1,0 +1,87 @@
+# ===============================================
+# TRADING DASHBOARD MICROSERVICE
+# ===============================================
+# Flask-based real-time trading dashboard
+# Optimized for high-frequency updates and low latency
+
+FROM tradingbot/base:latest as production
+
+# Service-specific metadata
+LABEL service="trading-dashboard"
+LABEL component="frontend"
+LABEL tier="user-facing"
+
+# Switch to root for installation
+USER root
+
+# Install Node.js for frontend asset compilation
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g npm@latest
+
+# Install additional Python dependencies for dashboard
+RUN pip install --no-cache-dir \
+    flask>=3.0.0 \
+    flask-cors>=4.0.0 \
+    flask-socketio>=5.3.0 \
+    gunicorn>=21.0.0 \
+    eventlet>=0.33.3 \
+    redis>=5.0.0 \
+    websockets>=11.0
+
+# Copy dashboard application files
+COPY dashboard/ /app/dashboard/
+COPY templates/ /app/templates/ 2>/dev/null || true
+COPY static/ /app/static/ 2>/dev/null || true
+COPY utils/ /app/utils/
+
+# Copy frontend assets and build
+COPY dashboard/static/package.json /app/dashboard/static/ 2>/dev/null || echo "{}" > /app/dashboard/static/package.json
+WORKDIR /app/dashboard/static
+RUN npm install 2>/dev/null || true && \
+    npm run build 2>/dev/null || true
+
+# Return to app directory
+WORKDIR /app
+
+# Copy configuration
+COPY cloud/configs/env-templates/dashboard.env.template /app/config/
+COPY cloud/configs/security/dashboard-security.conf /app/config/
+
+# Set proper permissions
+RUN chown -R tradingbot:tradingbot /app && \
+    chmod 755 /app/dashboard/*.py
+
+# Create runtime directories
+RUN mkdir -p /app/{cache,sessions,uploads} && \
+    chown -R tradingbot:tradingbot /app/{cache,sessions,uploads}
+
+# Switch back to non-root user
+USER tradingbot
+
+# Environment variables
+ENV SERVICE_NAME=trading-dashboard
+ENV SERVICE_PORT=5000
+ENV FLASK_APP=dashboard/app.py
+ENV FLASK_ENV=production
+ENV LOG_LEVEL=INFO
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# Dashboard-specific health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:5000/health || exit 1
+
+# Expose dashboard port
+EXPOSE 5000
+
+# Volume mounts for persistence
+VOLUME ["/app/logs", "/app/cache", "/app/sessions"]
+
+# Production startup with Gunicorn
+CMD ["gunicorn", "--worker-class", "eventlet", "--workers", "4", \
+     "--bind", "0.0.0.0:5000", "--timeout", "120", \
+     "--max-requests", "1000", "--max-requests-jitter", "100", \
+     "--access-logfile", "/app/logs/dashboard-access.log", \
+     "--error-logfile", "/app/logs/dashboard-error.log", \
+     "dashboard.app:app"]

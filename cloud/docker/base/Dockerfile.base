@@ -1,0 +1,65 @@
+# ===============================================
+# BASE DOCKER IMAGE FOR TRADING BOT PLATFORM
+# ===============================================
+# Multi-stage build for optimized production images
+# Security-hardened base with Python runtime
+
+FROM python:3.11-slim-bullseye as base
+
+# Metadata
+LABEL maintainer="Trading Bot Arsenal"
+LABEL version="1.0.0"
+LABEL description="Enterprise Trading Bot Platform - Base Image"
+
+# Set non-root user for security
+RUN groupadd -r tradingbot && useradd -r -g tradingbot tradingbot
+
+# Install system dependencies and security updates
+RUN apt-get update && apt-get install -y \
+    --no-install-recommends \
+    build-essential \
+    curl \
+    git \
+    libffi-dev \
+    libssl-dev \
+    procps \
+    netcat \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install TA-Lib for technical analysis
+RUN cd /tmp && \
+    curl -L http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz | tar xvz && \
+    cd ta-lib && \
+    ./configure --prefix=/usr && \
+    make && make install && \
+    cd / && rm -rf /tmp/ta-lib
+
+# Create application directories
+WORKDIR /app
+RUN mkdir -p /app/{logs,data,config,certs} && \
+    chown -R tradingbot:tradingbot /app
+
+# Install Python dependencies in virtual environment
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Security: Remove unnecessary packages and cache
+RUN pip cache purge && \
+    apt-get autoremove -y && \
+    rm -rf /var/cache/apt/* /var/lib/apt/lists/*
+
+# Copy health check script
+COPY cloud/docker/healthchecks/health-check.py /app/health-check.py
+RUN chmod +x /app/health-check.py
+
+# Switch to non-root user
+USER tradingbot
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python /app/health-check.py
+
+# Default command
+CMD ["python", "-c", "print('Base image ready')"]

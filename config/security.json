@@ -1,0 +1,75 @@
+{
+  "_comment": "Enterprise Security Configuration for Trading Bot",
+  "_warning": "Review all settings before production deployment",
+
+  "vault": {
+    "encryption_key_path": "security/vault/master.key",
+    "storage_path": "security/vault/keys.enc",
+    "rotation_interval_hours": 24,
+    "backup_count": 5,
+    "auto_rotation_enabled": true,
+    "key_strength": 256
+  },
+
+  "auth": {
+    "mfa_enabled": true,
+    "session_timeout_minutes": 30,
+    "max_failed_attempts": 3,
+    "lockout_duration_minutes": 15,
+    "totp_issuer": "TradingBot",
+    "backup_codes_count": 10
+  },
+
+  "audit": {
+    "log_level": "INFO",
+    "log_file_path": "logs/audit/trades.log",
+    "max_file_size_mb": 100,
+    "backup_count": 10,
+    "immutable_logging": true,
+    "hash_verification": true
+  },
+
+  "compliance": {
+    "reports_path": "data/compliance/reports",
+    "tax_jurisdiction": "US",
+    "enable_1099_generation": true,
+    "data_retention_years": 7,
+    "gdpr_compliance": true,
+    "pii_encryption": true
+  },
+
+  "encryption": {
+    "field_level_encryption": true,
+    "encryption_algorithm": "AES-256-GCM",
+    "key_derivation": "PBKDF2",
+    "key_rotation_days": 90,
+    "backup_encryption": true,
+    "in_transit_tls": true
+  },
+
+  "monitoring": {
+    "anomaly_detection": true,
+    "rate_limiting_enabled": true,
+    "max_requests_per_minute": 100,
+    "intrusion_detection": true,
+    "alert_email": "",
+    "log_suspicious_activity": true
+  },
+
+  "backup": {
+    "enabled": true,
+    "backup_interval_hours": 6,
+    "retention_days": 30,
+    "cloud_backup_enabled": true,
+    "encryption_enabled": true,
+    "verification_enabled": true
+  },
+
+  "access": {
+    "rbac_enabled": true,
+    "default_role": "viewer",
+    "session_management": true,
+    "ip_whitelist_enabled": false,
+    "admin_approval_required": true
+  }
+}

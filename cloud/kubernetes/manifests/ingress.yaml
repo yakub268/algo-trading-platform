@@ -1,0 +1,349 @@
+# ===============================================
+# INGRESS CONTROLLERS AND LOAD BALANCING
+# ===============================================
+# Enterprise-grade load balancing with SSL termination
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: trading-platform-ingress
+  namespace: trading-platform
+  labels:
+    app: trading-platform
+    component: ingress
+  annotations:
+    # NGINX Ingress Controller annotations
+    kubernetes.io/ingress.class: "nginx"
+
+    # SSL and Security
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+    nginx.ingress.kubernetes.io/ssl-ciphers: "ECDHE-RSA-AES128-GCM-SHA256,ECDHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-SHA256,ECDHE-RSA-AES256-SHA384"
+
+    # Load Balancing
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$request_uri"
+    nginx.ingress.kubernetes.io/load-balance: "ewma"
+
+    # Rate Limiting
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+
+    # Connection Limits
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+
+    # Request Size
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/client-max-body-size: "10m"
+
+    # Timeouts
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+
+    # WebSocket Support
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-set-headers: "trading-platform/websocket-headers"
+
+    # CORS Headers
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://trading.example.com,https://dashboard.trading.example.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET,POST,PUT,DELETE,OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+
+    # Security Headers
+    nginx.ingress.kubernetes.io/custom-http-errors: "404,503"
+    nginx.ingress.kubernetes.io/default-backend: "trading-platform/error-pages"
+
+    # Health Checks
+    nginx.ingress.kubernetes.io/health-check-path: "/health"
+    nginx.ingress.kubernetes.io/health-check-timeout: "10"
+
+    # Monitoring
+    nginx.ingress.kubernetes.io/enable-access-log: "true"
+    nginx.ingress.kubernetes.io/access-log-path: "/var/log/nginx/access.log"
+
+spec:
+  tls:
+  - hosts:
+    - trading.example.com
+    - dashboard.trading.example.com
+    - api.trading.example.com
+    secretName: trading-platform-tls
+
+  rules:
+  # Main Dashboard
+  - host: trading.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dashboard-service
+            port:
+              number: 5000
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: dashboard-service
+            port:
+              number: 5000
+
+  # Dashboard Subdomain
+  - host: dashboard.trading.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dashboard-service
+            port:
+              number: 5000
+
+  # API Endpoints
+  - host: api.trading.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: api-service
+            port:
+              number: 8000
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: api-service
+            port:
+              number: 8000
+
+  # API on main domain
+  - host: trading.example.com
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: api-service
+            port:
+              number: 8000
+
+---
+# ===============================================
+# NGINX INGRESS CONTROLLER CONFIGURATION
+# ===============================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-configuration
+  namespace: trading-platform
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/component: controller
+data:
+  # Global NGINX settings
+  worker-processes: "auto"
+  worker-connections: "16384"
+  max-worker-connections: "16384"
+  max-worker-open-files: "32768"
+
+  # Performance tuning
+  keepalive-requests: "1000"
+  keepalive-timeout: "75"
+  client-header-timeout: "60"
+  client-body-timeout: "60"
+  send-timeout: "60"
+
+  # Buffer settings
+  client-header-buffer-size: "1k"
+  large-client-header-buffers: "4 8k"
+  client-body-buffer-size: "8k"
+  client-max-body-size: "10m"
+
+  # Proxy settings
+  proxy-connect-timeout: "30"
+  proxy-send-timeout: "60"
+  proxy-read-timeout: "60"
+  proxy-buffers-number: "8"
+  proxy-buffer-size: "8k"
+
+  # Compression
+  enable-brotli: "true"
+  brotli-level: "6"
+  brotli-types: "application/xml+rss application/atom+xml application/javascript application/x-javascript application/json application/rss+xml application/vnd.ms-fontobject application/x-font-ttf application/x-web-app-manifest+json application/xhtml+xml application/xml font/opentype image/svg+xml image/x-icon text/css text/plain text/x-component"
+
+  # SSL configuration
+  ssl-protocols: "TLSv1.2 TLSv1.3"
+  ssl-ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384"
+  ssl-prefer-server-ciphers: "on"
+  ssl-session-cache: "shared:SSL:10m"
+  ssl-session-timeout: "10m"
+
+  # Rate limiting
+  limit-req-status-code: "429"
+  limit-conn-status-code: "429"
+
+  # Security headers
+  hide-headers: "Server,X-Powered-By"
+  add-headers: "trading-platform/security-headers"
+
+  # Logging
+  log-format-main: '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" req_time=$request_time upstream_time=$upstream_response_time upstream_addr=$upstream_addr'
+
+  # Health checks
+  upstream-keepalive-connections: "100"
+  upstream-keepalive-timeout: "60"
+  upstream-keepalive-requests: "1000"
+
+---
+# ===============================================
+# SECURITY HEADERS CONFIGMAP
+# ===============================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: security-headers
+  namespace: trading-platform
+data:
+  X-Frame-Options: "DENY"
+  X-Content-Type-Options: "nosniff"
+  X-XSS-Protection: "1; mode=block"
+  Strict-Transport-Security: "max-age=31536000; includeSubDomains; preload"
+  Content-Security-Policy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss: ws:; frame-ancestors 'none'"
+  Referrer-Policy: "strict-origin-when-cross-origin"
+  Permissions-Policy: "geolocation=(), microphone=(), camera=(), payment=()"
+
+---
+# ===============================================
+# WEBSOCKET HEADERS CONFIGMAP
+# ===============================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: websocket-headers
+  namespace: trading-platform
+data:
+  Upgrade: "$http_upgrade"
+  Connection: "upgrade"
+  X-Real-IP: "$remote_addr"
+  X-Forwarded-For: "$proxy_add_x_forwarded_for"
+  X-Forwarded-Proto: "$scheme"
+  X-Forwarded-Host: "$host"
+
+---
+# ===============================================
+# ERROR PAGES SERVICE
+# ===============================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: error-pages
+  namespace: trading-platform
+  labels:
+    app: error-pages
+    component: infrastructure
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: error-pages
+  template:
+    metadata:
+      labels:
+        app: error-pages
+    spec:
+      containers:
+      - name: error-pages
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: error-pages-config
+          mountPath: /usr/share/nginx/html
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "10m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+      volumes:
+      - name: error-pages-config
+        configMap:
+          name: error-pages-html
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: error-pages
+  namespace: trading-platform
+  labels:
+    app: error-pages
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: error-pages
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: error-pages-html
+  namespace: trading-platform
+data:
+  404.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Trading Platform - Page Not Found</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+            .error-code { font-size: 72px; color: #e74c3c; margin: 0; }
+            .error-message { font-size: 24px; color: #2c3e50; margin: 20px 0; }
+            .error-description { font-size: 16px; color: #7f8c8d; margin: 20px auto; max-width: 500px; }
+            .back-link { display: inline-block; margin-top: 30px; padding: 12px 24px; background: #3498db; color: white; text-decoration: none; border-radius: 5px; }
+        </style>
+    </head>
+    <body>
+        <div class="error-code">404</div>
+        <div class="error-message">Page Not Found</div>
+        <div class="error-description">The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.</div>
+        <a href="/" class="back-link">Return to Dashboard</a>
+    </body>
+    </html>
+
+  503.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Trading Platform - Service Unavailable</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+            .error-code { font-size: 72px; color: #f39c12; margin: 0; }
+            .error-message { font-size: 24px; color: #2c3e50; margin: 20px 0; }
+            .error-description { font-size: 16px; color: #7f8c8d; margin: 20px auto; max-width: 500px; }
+            .back-link { display: inline-block; margin-top: 30px; padding: 12px 24px; background: #f39c12; color: white; text-decoration: none; border-radius: 5px; }
+        </style>
+    </head>
+    <body>
+        <div class="error-code">503</div>
+        <div class="error-message">Service Temporarily Unavailable</div>
+        <div class="error-description">The trading platform is currently undergoing maintenance or experiencing high traffic. Please try again in a few moments.</div>
+        <a href="/" class="back-link">Retry</a>
+        <script>
+            // Auto-refresh after 30 seconds
+            setTimeout(function() { location.reload(); }, 30000);
+        </script>
+    </body>
+    </html>

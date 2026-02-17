@@ -1,0 +1,42 @@
+{
+  "holdings": [
+    {
+      "product_id": "SOL/USD",
+      "symbol": "SOL",
+      "quantity": 0.5273852569928029,
+      "entry_price": 189.61470514023995,
+      "entry_time": "2026-02-16T20:21:47.974353+00:00",
+      "entry_change_pct": 0.1264268767033774,
+      "current_price": 189.61470514023995,
+      "current_change_pct": 0.1264268767033774,
+      "pnl": 0.0,
+      "pnl_pct": 0.0
+    },
+    {
+      "product_id": "LINK/USD",
+      "symbol": "LINK",
+      "quantity": 5.47656733863797,
+      "entry_price": 18.259612968599075,
+      "entry_time": "2026-02-16T20:21:47.974353+00:00",
+      "entry_change_pct": 0.09343030437368917,
+      "current_price": 18.259612968599075,
+      "current_change_pct": 0.09343030437368917,
+      "pnl": 0.0,
+      "pnl_pct": 0.0
+    },
+    {
+      "product_id": "ARB/USD",
+      "symbol": "ARB",
+      "quantity": 20.285728222168185,
+      "entry_price": 4.929574078130471,
+      "entry_time": "2026-02-16T20:21:47.974853+00:00",
+      "entry_change_pct": 0.0531834714405955,
+      "current_price": 4.929574078130471,
+      "current_change_pct": 0.0531834714405955,
+      "pnl": 0.0,
+      "pnl_pct": 0.0
+    }
+  ],
+  "last_scan_time": "2026-02-16T20:21:47.974853+00:00",
+  "updated": "2026-02-16T20:21:47.974853+00:00"
+}

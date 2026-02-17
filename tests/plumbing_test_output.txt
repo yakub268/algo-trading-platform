@@ -1,0 +1,79 @@
+INFO:CoinbaseArbBot:Coinbase client initialized with official SDK
+[10:34:15] ============================================================
+[10:34:15] PLUMBING TEST — 2026-02-06T10:34:15.026455
+[10:34:15] DB: C:\Users\yakub\Desktop\trading_bot\data\live\trading_master.db
+[10:34:15] Base: C:\Users\yakub\Desktop\trading_bot
+[10:34:15] ============================================================
+[10:34:15] 
+============================================================
+[10:34:15] TEST 1: DATABASE CONNECTIVITY
+[10:34:15] ============================================================
+[10:34:15]   [PASS] DB Connect — 73 existing trades
+[10:34:15]   [PASS] DB Write — Inserted PLUMBING_TEST_20260206_103415
+[10:34:15]   [PASS] DB Read — Found trade: status=open
+[10:34:15]   [PASS] DB Update — Trade closed with PnL
+[10:34:15]   [PASS] DB Cleanup — Test trade removed
+[10:34:15] 
+============================================================
+[10:34:15] TEST 2: SIGNAL FORMAT
+[10:34:15] ============================================================
+[10:34:15]   [PASS] Signal field 'symbol' — BTC-USDC
+[10:34:15]   [PASS] Signal field 'action' — buy
+[10:34:15]   [PASS] Signal field 'price' — 95000.0
+[10:34:15]   [PASS] Signal field 'quantity' — 0.0001
+[10:34:15]   [PASS] Action parsing — action=buy, is_close=False
+[10:34:15]   [PASS] Already-executed check — status=filled
+[10:34:15] 
+============================================================
+[10:34:15] TEST 3: EXCHANGE CONNECTIVITY
+[10:34:15] ============================================================
+[10:34:15]   [PASS] Coinbase Init — Client connected
+[10:34:15]   [PASS] BTC Price — $71,313.57 (bid=71,311.15, ask=71,316.00)
+[10:34:15]   [PASS] Coinbase Accounts — USDC balance: $18.08
+[10:34:15] 
+============================================================
+[10:34:15] TEST 4: LIVE MICRO-TRADE EXECUTION
+[10:34:15] ============================================================
+[10:34:15]   Placing market buy: $2.00 of BTC-USDC...
+[10:34:15]   [PASS] Market Buy — Order ID: {'success': True, 'success_response': {'order_id': '71fa80c8-3e98-4a48-b7e4-b59f5ea09f37', 'product_id': 'BTC-USDC', 'side': 'BUY', 'client_order_id': '7fdab63c-3d3d-419b-b423-6990835466fd', 'attached_order_id': ''}, 'order_configuration': {'market_market_ioc': {'quote_size': '2.00', 'rfq_enabled': False, 'rfq_disabled': False, 'reduce_only': False}}}
+[10:34:15] 
+============================================================
+[10:34:15] TEST 5: DATABASE TRACKING
+[10:34:15] ============================================================
+[10:34:15]   [PASS] DB Track Open — entry=$71,313.57, qty=0.00002805
+[10:34:15] 
+  Waiting 30 seconds for order to settle...
+[10:34:45] 
+============================================================
+[10:34:45] TEST 6: EXIT / CLOSE TRACKING
+[10:34:45] ============================================================
+[10:34:46]   Selling 9.923e-05 BTC (balance: 0.00009923 BTC)...
+[10:34:46]   [PASS] Market Sell
+[10:34:46]   [PASS] DB Track Close — PnL: $-0.0042 (-0.2124%)
+[10:34:46] 
+============================================================
+[10:34:46] TEST 7: P&L CALCULATION
+[10:34:46] ============================================================
+[10:34:46]   [PASS] P&L Formula — DB: $-0.0042, Expected: $-0.0042
+[10:34:46]   [PASS] P&L Pct Formula — DB: -0.2124%, Expected: -0.2124%
+[10:34:46] 
+============================================================
+[10:34:46] TEST 8: DASHBOARD API
+[10:34:46] ============================================================
+[10:34:50]   [FAIL] Dashboard API — Not reachable — <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>
+[10:34:50] 
+============================================================
+[10:34:50] SUMMARY
+[10:34:50] ============================================================
+[10:34:50]   PASS: database
+[10:34:50]   PASS: signal_format
+[10:34:50]   PASS: exchange
+[10:34:50]   PASS: live_trade
+[10:34:50]   PASS: exit
+[10:34:50]   PASS: pnl
+[10:34:50]   FAIL: dashboard
+[10:34:50] 
+  6/7 passed, 1 failed
+[10:34:50] 
+  1 TESTS FAILED — See details above
+[10:34:50] Results saved to C:\Users\yakub\Desktop\trading_bot\tests\plumbing_test_results.txt

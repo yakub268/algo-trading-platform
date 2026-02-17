@@ -1,0 +1,82 @@
+event:
+  name: "FIFA World Cup 2026"
+  id: world_cup_2026
+  sport: soccer
+  espn_league: fifa.world
+
+timing:
+  start: "2026-06-11T10:00:00-06:00"
+  end: "2026-07-19T16:00:00-06:00"
+  poll_interval: 30
+
+kalshi:
+  series_tickers: [KXWC, KXFIFA, KXSOCCER]
+  search_keywords: [world cup, fifa, soccer, football world cup, group stage, knockout round]
+
+risk:
+  max_exposure: 500
+  max_single_trade: 50
+  circuit_breaker_loss: 150
+
+odds:
+  sport_key: soccer_fifa_world_cup
+  bookmakers: [draftkings, fanduel, betmgm, bet365, pinnacle]
+
+sentiment:
+  subreddits: [soccer, worldcup, sportsbook, SoccerBetting]
+  news_queries: ["world cup", "fifa", "starting lineup", "injury report"]
+  teams: [USA, Brazil, Argentina, France, England, Germany, Spain, Portugal]
+
+triggers:
+  EARLY_GOAL:
+    action: buy
+    side: "yes"
+    target: scoring_team_ml
+    max_contracts: 20
+    description: "Goal in first 15 min — 72% of teams leading 1-0 at 15' win"
+
+  RED_CARD:
+    action: buy
+    side: "yes"
+    target: opposing_team_ml
+    max_contracts: 25
+    description: "Red card — down to 10 men, opponent massive advantage"
+
+  UPSET_ALERT:
+    action: buy
+    side: "yes"
+    target: underdog_ml
+    max_contracts: 25
+    description: "Underdog leading at halftime — World Cup upsets are common"
+
+  LATE_EQUALIZER:
+    action: buy
+    side: "yes"
+    target: draw
+    max_contracts: 15
+    description: "Goal after 80' to equalize — draw likely to hold"
+
+  PENALTY_SHOOTOUT:
+    action: buy
+    side: "yes"
+    target: underdog_advance
+    max_contracts: 20
+    description: "Penalties are 50/50 — back the underdog price"
+
+  GROUP_STAGE_DEAD_RUBBER:
+    action: buy
+    side: "no"
+    target: favorite_ml
+    max_contracts: 15
+    description: "Already-qualified team rests starters in final group game"
+
+  COMEBACK_ALERT:
+    action: buy
+    side: "yes"
+    target: trailing_team_ml
+    max_contracts: 20
+    description: "Team equalizes after being down — momentum shift"
+
+espn:
+  date: ""
+  teams: []

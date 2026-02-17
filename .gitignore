@@ -1,0 +1,52 @@
+# Environment / Secrets
+.env
+.env.*
+*.pem
+*.key
+.trading_keys/
+
+# Data (runtime)
+data/
+logs/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+package-lock.json
+
+# Generated
+*.log
+*.pid
+*.bak
+outputs/
+backups/
+
+# Temp scripts
+temp_*.py
+tmp_*.py

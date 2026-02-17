@@ -1,0 +1,34 @@
+event:
+  name: "US Midterm Elections 2026"
+  id: election_2026
+  sport: politics
+  espn_league: ""
+
+timing:
+  start: "2026-11-03T06:00:00-07:00"
+  end: "2026-11-04T06:00:00-07:00"
+  poll_interval: 45
+
+kalshi:
+  series_tickers: [KXSEN, KXHOUSE, KXGOV, KXELEC]
+  search_keywords: [senate, house, governor, election, midterm, control]
+
+risk:
+  max_exposure: 500
+  max_single_trade: 50
+  circuit_breaker_loss: 150
+
+odds:
+  sport_key: ""
+  bookmakers: []
+
+sentiment:
+  subreddits: [politics, PoliticalDiscussion, fivethirtyeight]
+  news_queries: ["midterm elections 2026", "senate race", "house race"]
+  teams: []
+
+triggers: {}
+
+espn:
+  date: ""
+  teams: []

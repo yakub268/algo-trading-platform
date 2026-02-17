@@ -1,0 +1,47 @@
+event:
+  name: "Kentucky Derby 2026"
+  id: kentucky_derby_2026
+  sport: horse_racing
+  espn_league: ""
+
+timing:
+  start: "2026-05-02T10:00:00-06:00"
+  end: "2026-05-02T20:00:00-06:00"
+  poll_interval: 60
+
+kalshi:
+  series_tickers: [KXDERBY, KXHORSE, KXKD]
+  search_keywords: [kentucky derby, horse racing, derby winner, triple crown]
+
+risk:
+  max_exposure: 200
+  max_single_trade: 40
+  circuit_breaker_loss: 60
+
+odds:
+  sport_key: horse_racing
+  bookmakers: [draftkings, fanduel, betmgm, caesars]
+
+sentiment:
+  subreddits: [horseracing, sportsbook, gambling]
+  news_queries: ["kentucky derby", "derby odds", "morning line", "post position"]
+  teams: []
+
+triggers:
+  SCRATCH:
+    action: buy
+    side: "yes"
+    target: remaining_favorites
+    max_contracts: 20
+    description: "Favorite scratched — remaining horses value increases"
+
+  POST_POSITION_EDGE:
+    action: buy
+    side: "yes"
+    target: favorable_post
+    max_contracts: 15
+    description: "Historical post position advantage (posts 5-10 win 58%)"
+
+espn:
+  date: ""
+  teams: []

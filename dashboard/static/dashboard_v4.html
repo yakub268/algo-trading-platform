@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Dashboard V4.2</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.10.3/umd/Recharts.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        body { margin: 0; background: linear-gradient(135deg, #020617 0%, #0f172a 50%, #020617 100%); min-height: 100vh; }
+        .grid-bg { 
+            position: fixed; inset: 0; 
+            background: linear-gradient(rgba(30,41,59,0.5) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(30,41,59,0.5) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line } = Recharts;
+
+        // ===== ICONS (SVG) =====
+        const Icons = {
+            Wifi: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" /></svg>,
+            WifiOff: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" /></svg>,
+            Clock: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            Zap: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
+            DollarSign: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            Shield: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>,
+            TrendingDown: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>,
+            TrendingUp: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>,
+            Percent: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>,
+            BarChart: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
+            Activity: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
+            Brain: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>,
+            Target: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>,
+            Eye: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
+            AlertTriangle: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
+            AlertCircle: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            Info: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            Pause: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            Play: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            RefreshCw: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>,
+            Flask: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>,
+        };
+
+        // ===== MINI SPARKLINE =====
+        const MiniSparkline = ({ data, color = "#22c55e", height = 40 }) => (
+            <ResponsiveContainer width="100%" height={height}>
+                <AreaChart data={data} margin={{ top: 5, right: 0, left: 0, bottom: 5 }}>
+                    <defs>
+                        <linearGradient id={`grad-${color.replace('#','')}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                            <stop offset="95%" stopColor={color} stopOpacity={0} />
+                        </linearGradient>
+                    </defs>
+                    <Area type="monotone" dataKey="v" stroke={color} strokeWidth={2} fill={`url(#grad-${color.replace('#','')})`} />
+                </AreaChart>
+            </ResponsiveContainer>
+        );
+
+        // ===== STATUS BADGE =====
+        const StatusBadge = ({ status }) => {
+            const styles = {
+                LIVE: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+                PAUSED: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+                ERROR: "bg-red-500/20 text-red-400 border-red-500/30",
+                HEALTHY: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+                PAPER: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+            };
+            return <span className={`px-2 py-0.5 text-xs font-semibold rounded border ${styles[status] || styles.PAUSED}`}>{status}</span>;
+        };
+
+        // ===== ALERT ITEM =====
+        const AlertItem = ({ severity, message, time }) => {
+            const icons = { critical: <Icons.AlertTriangle />, warning: <Icons.AlertCircle />, info: <Icons.Info /> };
+            const colors = { critical: "text-red-400 border-l-red-500", warning: "text-amber-400 border-l-amber-500", info: "text-blue-400 border-l-blue-500" };
+            return (
+                <div className={`flex items-start gap-3 p-3 bg-slate-800/50 border-l-2 ${colors[severity]} rounded-r`}>
+                    <span className={colors[severity].split(' ')[0]}>{icons[severity]}</span>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-200 truncate">{message}</p>
+                        <p className="text-xs text-slate-500 mt-1">{time}</p>
+                    </div>
+                </div>
+            );
+        };
+
+        // ===== STRATEGY CARD =====
+        const StrategyCard = ({ name, status, pnl, winRate, trades, data }) => {
+            const isProfit = pnl >= 0;
+            return (
+                <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 rounded-xl p-4 hover:border-slate-600/50 transition-all">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-slate-100">{name}</h3>
+                        <StatusBadge status={status} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mb-3">
+                        <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wide">P&L</p>
+                            <p className={`text-xl font-bold ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {isProfit ? '+' : ''}${Math.abs(pnl).toFixed(2)}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wide">Win Rate</p>
+                            <p className="text-xl font-bold text-slate-100">{winRate}%</p>
+                        </div>
+                    </div>
+                    <div className="mb-3">
+                        <div className="flex justify-between text-xs text-slate-500 mb-1">
+                            <span>Trades</span>
+                            <span className="text-slate-300">{trades}</span>
+                        </div>
+                        <MiniSparkline data={data} color={isProfit ? "#22c55e" : "#f59e0b"} height={35} />
+                    </div>
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-700/50">
+                        <button className="px-3 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors">
+                            {status === 'LIVE' ? 'Pause' : 'Resume'}
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // ===== POSITION ROW =====
+        const PositionRow = ({ symbol, broker, strategy, side, entry, current, pnl, age }) => {
+            const isProfit = pnl >= 0;
+            return (
+                <tr className="border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors">
+                    <td className="py-3 px-4"><span className="font-semibold text-slate-100">{symbol}</span></td>
+                    <td className="py-3 px-4 text-slate-400 text-sm">{broker}</td>
+                    <td className="py-3 px-4 text-slate-400 text-sm">{strategy}</td>
+                    <td className="py-3 px-4">
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded ${side === 'LONG' || side === 'YES' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{side}</span>
+                    </td>
+                    <td className="py-3 px-4 text-slate-300 font-mono text-sm">${parseFloat(entry).toFixed(2)}</td>
+                    <td className="py-3 px-4 text-slate-300 font-mono text-sm">${parseFloat(current).toFixed(2)}</td>
+                    <td className={`py-3 px-4 font-semibold ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {isProfit ? '+' : ''}${Math.abs(pnl).toFixed(2)}
+                    </td>
+                    <td className="py-3 px-4 text-slate-500 text-sm">{age}</td>
+                    <td className="py-3 px-4">
+                        <button className="px-2 py-1 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded transition-colors">Close</button>
+                    </td>
+                </tr>
+            );
+        };
+
+        // ===== MAIN DASHBOARD =====
+        function TradingDashboard() {
+            const [data, setData] = useState(null);
+            const [currentTime, setCurrentTime] = useState(new Date());
+            const [error, setError] = useState(null);
+
+            const fetchData = async () => {
+                try {
+                    const res = await fetch('/api/dashboard');
+                    if (!res.ok) throw new Error('API error');
+                    const json = await res.json();
+                    setData(json);
+                    setError(null);
+                } catch (e) {
+                    setError(e.message);
+                }
+            };
+
+            useEffect(() => {
+                fetchData();
+                const interval = setInterval(fetchData, 5000);
+                const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+                return () => { clearInterval(interval); clearInterval(timer); };
+            }, []);
+
+            const genSparkline = () => Array.from({length: 15}, (_, i) => ({ v: 50 + Math.random() * 30 + i * 2 }));
+            const genEquityCurve = () => Array.from({length: 30}, (_, i) => ({ day: i + 1, value: 400 + Math.random() * 50 + i * 5 }));
+
+            const d = data || {
+                total_pnl: 0, daily_limit_used: 0, daily_limit_max: 22.50, drawdown: 0, max_drawdown: 67.50,
+                win_rate: 0, exposure: 0, paper_trading: true, api_status: 'HEALTHY',
+                strategies: [], positions: [], brokers: {}, alerts: [],
+                ai_status: { regime: 'UNKNOWN', sentiment: 0, veto_rate: 0, edges_found: 0, cost_today: 0 }
+            };
+
+            const isProfit = d.total_pnl >= 0;
+
+            return (
+                <div className="min-h-screen text-slate-100 p-6">
+                    <div className="relative max-w-[1600px] mx-auto space-y-6">
+                        
+                        {/* HEADER */}
+                        <header className="flex items-center justify-between bg-slate-800/40 backdrop-blur-sm border border-slate-700/50 rounded-xl px-6 py-4">
+                            <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-2">
+                                    {d.api_status === 'HEALTHY' ? <span className="text-emerald-400"><Icons.Wifi /></span> : <span className="text-red-400"><Icons.WifiOff /></span>}
+                                    <span className="font-medium">API</span>
+                                    <StatusBadge status={d.api_status} />
+                                </div>
+                                <div className="h-6 w-px bg-slate-700" />
+                                <StatusBadge status={d.paper_trading ? 'PAPER' : 'LIVE'} />
+                                <div className="h-6 w-px bg-slate-700" />
+                                <div className="flex items-center gap-2 text-slate-400">
+                                    <Icons.Clock />
+                                    <span className="text-sm">{currentTime.toLocaleTimeString()}</span>
+                                </div>
+                            </div>
+                            <button className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-red-900/30">
+                                <Icons.Zap /> KILL SWITCH
+                            </button>
+                        </header>
+
+                        {error && (
+                            <div className="bg-red-500/20 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg">
+                                ⚠️ API Error: {error} - Using fallback data
+                            </div>
+                        )}
+
+                        {/* TOP KPI ROW */}
+                        <div className="grid grid-cols-5 gap-4">
+                            <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 rounded-xl p-4">
+                                <div className="flex items-center gap-2 text-slate-500 text-sm mb-1"><Icons.DollarSign /><span>Total P&L</span></div>
+                                <p className={`text-3xl font-bold ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>{isProfit ? '+' : '-'}${Math.abs(d.total_pnl).toFixed(2)}</p>
+                            </div>
+                            <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 rounded-xl p-4">
+                                <div className="flex items-center gap-2 text-slate-500 text-sm mb-1"><Icons.Shield /><span>Daily Limit Used</span></div>
+                                <p className="text-3xl font-bold text-slate-100">${d.daily_limit_used?.toFixed(2) || '0.00'}</p>
+                                <p className="text-xs text-slate-500 mt-1">of ${d.daily_limit_max?.toFixed(2) || '22.50'} (5%)</p>
+                            </div>
+                            <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 rounded-xl p-4">
+                                <div className="flex items-center gap-2 text-slate-500 text-sm mb-1"><Icons.TrendingDown /><span>Drawdown</span></div>
+                                <p className="text-3xl font-bold text-amber-400">↓ ${d.drawdown?.toFixed(2) || '0.00'}</p>
+                                <p className="text-xs text-slate-500 mt-1">Max: ${d.max_drawdown?.toFixed(2) || '67.50'} (15%)</p>
+                            </div>
+                            <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 rounded-xl p-4">
+                                <div className="flex items-center gap-2 text-slate-500 text-sm mb-1"><Icons.Percent /><span>Win Rate</span></div>
+                                <p className="text-3xl font-bold text-slate-100">{d.win_rate?.toFixed(1) || '0'}%</p>
+                            </div>
+                            <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 rounded-xl p-4">
+                                <div className="flex items-center gap-2 text-slate-500 text-sm mb-1"><Icons.BarChart /><span>Exposure</span></div>
+                                <p className="text-3xl font-bold text-slate-100">{d.exposure?.toFixed(0) || '0'}%</p>
+                                <div className="flex gap-1 mt-2">
+                                    <div className="h-2 bg-emerald-500 rounded" style={{width: '45%'}} title="Alpaca" />
+                                    <div className="h-2 bg-blue-500 rounded" style={{width: '33%'}} title="Kalshi" />
+                                    <div className="h-2 bg-amber-500 rounded" style={{width: '22%'}} title="OANDA" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* MAIN 3-COLUMN GRID */}
+                        <div className="grid grid-cols-12 gap-6">
+                            
+                            {/* LEFT - Strategy Cards */}
+                            <div className="col-span-3 space-y-4">
+                                <h2 className="text-lg font-semibold text-slate-300 flex items-center gap-2"><Icons.Activity /> Active Strategies</h2>
+                                {(d.strategies || []).length > 0 ? d.strategies.map((s, i) => (
+                                    <StrategyCard key={i} name={s.name} status={s.status} pnl={s.pnl || 0} winRate={s.win_rate || 0} trades={s.trades || 0} data={genSparkline()} />
+                                )) : (
+                                    <>
+                                        <StrategyCard name="Momentum" status="PAUSED" pnl={0} winRate={0} trades={0} data={genSparkline()} />
+                                        <StrategyCard name="RSI-2 Reversion" status="PAUSED" pnl={0} winRate={0} trades={0} data={genSparkline()} />
+                                        <StrategyCard name="Fed Decision Bot" status="PAUSED" pnl={0} winRate={0} trades={0} data={genSparkline()} />
+                                    </>
+                                )}
+                            </div>
+                            
+                            {/* CENTER - Equity Curve + Positions */}
+                            <div className="col-span-6 space-y-6">
+                                <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 rounded-xl p-5">
+                                    <h2 className="text-lg font-semibold text-slate-300 mb-4 flex items-center gap-2"><Icons.TrendingUp /> Equity Curve</h2>
+                                    <ResponsiveContainer width="100%" height={200}>
+                                        <AreaChart data={d.equity_curve || genEquityCurve()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                            <defs>
+                                                <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                                                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} domain={['dataMin - 20', 'dataMax + 20']} />
+                                            <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
+                                            <Area type="monotone" dataKey="value" stroke="#22c55e" strokeWidth={2} fill="url(#equityGrad)" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                
+                                <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 rounded-xl p-5">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h2 className="text-lg font-semibold text-slate-300 flex items-center gap-2"><Icons.Target /> Active Positions ({(d.positions || []).length})</h2>
+                                        <button className="px-3 py-1.5 text-xs font-medium bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg">Close All</button>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead>
+                                                <tr className="text-left text-xs text-slate-500 uppercase tracking-wide border-b border-slate-700/50">
+                                                    <th className="pb-3 px-4">Symbol</th><th className="pb-3 px-4">Broker</th><th className="pb-3 px-4">Strategy</th>
+                                                    <th className="pb-3 px-4">Side</th><th className="pb-3 px-4">Entry</th><th className="pb-3 px-4">Current</th>
+                                                    <th className="pb-3 px-4">P&L</th><th className="pb-3 px-4">Age</th><th className="pb-3 px-4">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(d.positions || []).length > 0 ? d.positions.map((p, i) => <PositionRow key={i} {...p} />) : (
+                                                    <tr><td colSpan="9" className="py-8 text-center text-slate-500">No open positions</td></tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* RIGHT - AI Status, Health, Actions, Alerts */}
+                            <div className="col-span-3 space-y-4">
+                                <div className="bg-gradient-to-br from-indigo-900/40 to-slate-800/60 backdrop-blur border border-indigo-700/30 rounded-xl p-4">
+                                    <h2 className="text-lg font-semibold text-slate-300 mb-4 flex items-center gap-2"><span className="text-indigo-400"><Icons.Brain /></span> AI Status</h2>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center"><span className="text-slate-400 text-sm">Current Regime</span><span className="px-2 py-1 bg-amber-500/20 text-amber-400 text-xs font-semibold rounded">{d.ai_status?.regime || 'UNKNOWN'}</span></div>
+                                        <div className="flex justify-between items-center"><span className="text-slate-400 text-sm">Sentiment</span><span className="text-emerald-400 font-semibold">{d.ai_status?.sentiment >= 0 ? '+' : ''}{d.ai_status?.sentiment?.toFixed(2) || '0.00'}</span></div>
+                                        <div className="flex justify-between items-center"><span className="text-slate-400 text-sm">Veto Rate Today</span><span className="text-slate-200 font-semibold">{d.ai_status?.veto_rate || 0}%</span></div>
+                                        <div className="flex justify-between items-center"><span className="text-slate-400 text-sm">Active Edges</span><span className="text-blue-400 font-semibold">{d.ai_status?.edges_found || 0} found</span></div>
+                                        <div className="flex justify-between items-center"><span className="text-slate-400 text-sm">AI Cost Today</span><span className="text-slate-300">${d.ai_status?.cost_today?.toFixed(2) || '0.00'}</span></div>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 rounded-xl p-4">
+                                    <h2 className="text-lg font-semibold text-slate-300 mb-3 flex items-center gap-2"><Icons.Activity /> System Health</h2>
+                                    <div className="space-y-2">
+                                        {Object.entries(d.brokers || {}).map(([name, info]) => (
+                                            <div key={name} className="flex justify-between items-center py-2 border-b border-slate-700/30">
+                                                <span className="text-slate-400 text-sm capitalize">{name}</span>
+                                                <StatusBadge status={info.status || 'UNKNOWN'} />
+                                            </div>
+                                        ))}
+                                        {Object.keys(d.brokers || {}).length === 0 && (
+                                            <>
+                                                <div className="flex justify-between items-center py-2 border-b border-slate-700/30"><span className="text-slate-400 text-sm">Alpaca</span><StatusBadge status="HEALTHY" /></div>
+                                                <div className="flex justify-between items-center py-2 border-b border-slate-700/30"><span className="text-slate-400 text-sm">Kalshi</span><StatusBadge status="HEALTHY" /></div>
+                                                <div className="flex justify-between items-center py-2"><span className="text-slate-400 text-sm">OANDA</span><StatusBadge status="HEALTHY" /></div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 rounded-xl p-4">
+                                    <h2 className="text-lg font-semibold text-slate-300 mb-3">Quick Actions</h2>
+                                    <div className="space-y-2">
+                                        <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-medium rounded-lg transition-colors"><Icons.Pause /> Pause All</button>
+                                        <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded-lg transition-colors"><Icons.Play /> Resume All</button>
+                                        <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded-lg transition-colors"><Icons.RefreshCw /> Reset Daily Limit</button>
+                                        <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded-lg transition-colors"><Icons.Flask /> Run Backtest</button>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 rounded-xl p-4">
+                                    <h2 className="text-lg font-semibold text-slate-300 mb-3 flex items-center gap-2"><Icons.Eye /> Alerts</h2>
+                                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                                        {(d.alerts || []).length > 0 ? d.alerts.map((a, i) => <AlertItem key={i} {...a} />) : <p className="text-sm text-slate-500 text-center py-4">No alerts</p>}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <footer className="text-center text-slate-600 text-sm py-4">Trading Dashboard V4.2 • {d.paper_trading ? 'Paper' : 'Live'} Trading Mode • $450 Capital</footer>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<TradingDashboard />);
+    </script>
+</body>
+</html>

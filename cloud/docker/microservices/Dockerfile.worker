@@ -1,0 +1,97 @@
+# ===============================================
+# BACKGROUND WORKER MICROSERVICE
+# ===============================================
+# Celery-based background task processor
+# Handles async operations, ML training, and batch processing
+
+FROM tradingbot/base:latest as production
+
+# Service-specific metadata
+LABEL service="trading-worker"
+LABEL component="backend"
+LABEL tier="processing"
+
+# Switch to root for installation
+USER root
+
+# Install Celery and task queue dependencies
+RUN pip install --no-cache-dir \
+    celery[redis]>=5.3.0 \
+    kombu>=5.3.0 \
+    billiard>=4.2.0 \
+    flower>=2.0.0
+
+# Copy worker service files
+COPY workers/ /app/workers/ 2>/dev/null || mkdir -p /app/workers
+COPY utils/ /app/utils/
+COPY config/ /app/config/
+COPY ml_models/ /app/ml_models/ 2>/dev/null || mkdir -p /app/ml_models
+COPY analytics/ /app/analytics/ 2>/dev/null || mkdir -p /app/analytics
+
+# Create worker application if it doesn't exist
+RUN if [ ! -f /app/workers/celery_app.py ]; then \
+        cat > /app/workers/celery_app.py << 'EOF'
+from celery import Celery
+import os
+
+broker_url = os.getenv('REDIS_URL', 'redis://redis:6379/0')
+result_backend = os.getenv('REDIS_URL', 'redis://redis:6379/0')
+
+app = Celery('trading_worker')
+app.conf.update(
+    broker_url=broker_url,
+    result_backend=result_backend,
+    task_serializer='json',
+    accept_content=['json'],
+    result_serializer='json',
+    timezone='UTC',
+    enable_utc=True,
+    worker_prefetch_multiplier=1,
+    task_acks_late=True,
+    worker_disable_rate_limits=False
+)
+
+@app.task
+def health_check():
+    return {"status": "healthy", "worker": "running"}
+EOF
+    fi
+
+# Copy configuration
+COPY cloud/configs/env-templates/worker.env.template /app/config/
+COPY cloud/configs/security/worker-security.conf /app/config/
+
+# Set proper permissions
+RUN chown -R tradingbot:tradingbot /app && \
+    chmod 755 /app/workers/*.py
+
+# Create runtime directories
+RUN mkdir -p /app/{tasks,results,temp} && \
+    chown -R tradingbot:tradingbot /app/{tasks,results,temp}
+
+# Switch back to non-root user
+USER tradingbot
+
+# Environment variables
+ENV SERVICE_NAME=trading-worker
+ENV CELERY_APP=workers.celery_app:app
+ENV LOG_LEVEL=INFO
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV C_FORCE_ROOT=1
+
+# Worker-specific health check
+HEALTHCHECK --interval=60s --timeout=30s --start-period=120s --retries=3 \
+    CMD celery -A workers.celery_app inspect ping || exit 1
+
+# Volume mounts for persistence
+VOLUME ["/app/logs", "/app/tasks", "/app/results"]
+
+# Production startup with optimized worker settings
+CMD ["celery", "-A", "workers.celery_app", "worker", \
+     "--loglevel=INFO", \
+     "--concurrency=4", \
+     "--prefetch-multiplier=1", \
+     "--max-tasks-per-child=1000", \
+     "--time-limit=3600", \
+     "--soft-time-limit=3300"]

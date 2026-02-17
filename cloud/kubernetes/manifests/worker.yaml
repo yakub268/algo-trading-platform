@@ -1,0 +1,276 @@
+# ===============================================
+# BACKGROUND WORKER DEPLOYMENT
+# ===============================================
+# Celery workers for ML training and batch processing
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: trading-platform
+  labels:
+    app: worker
+    component: processing
+    tier: backend
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+        component: processing
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+      - name: worker
+        image: tradingbot/worker:latest
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres-service:5432/$(POSTGRES_DB)"
+        - name: REDIS_URL
+          value: "redis://:$(REDIS_PASSWORD)@redis-service:6379/3"
+        - name: CELERY_BROKER_URL
+          value: "redis://:$(REDIS_PASSWORD)@redis-service:6379/3"
+        - name: CELERY_RESULT_BACKEND
+          value: "redis://:$(REDIS_PASSWORD)@redis-service:6379/3"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: database
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: password
+        - name: WORKER_CONCURRENCY
+          value: "4"
+        - name: WORKER_MAX_TASKS_PER_CHILD
+          value: "1000"
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        - name: ml-models
+          mountPath: /app/ml_models
+        - name: analytics
+          mountPath: /app/analytics
+        - name: temp
+          mountPath: /app/temp
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        livenessProbe:
+          exec:
+            command:
+            - celery
+            - -A
+            - workers.celery_app
+            - inspect
+            - ping
+          initialDelaySeconds: 60
+          periodSeconds: 60
+          timeoutSeconds: 30
+        readinessProbe:
+          exec:
+            command:
+            - celery
+            - -A
+            - workers.celery_app
+            - inspect
+            - active
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 15
+
+      volumes:
+      - name: logs
+        emptyDir: {}
+      - name: ml-models
+        emptyDir: {}
+      - name: analytics
+        emptyDir: {}
+      - name: temp
+        emptyDir: {}
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker-service
+  namespace: trading-platform
+  labels:
+    app: worker
+    component: processing
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: metrics
+  selector:
+    app: worker
+
+---
+# ===============================================
+# WORKER AUTOSCALER BASED ON QUEUE LENGTH
+# ===============================================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: worker-hpa
+  namespace: trading-platform
+  labels:
+    app: worker
+    component: autoscaling
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: worker
+  minReplicas: 4
+  maxReplicas: 30
+  metrics:
+  # Resource-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  # Custom metric: Queue length
+  - type: Object
+    object:
+      metric:
+        name: celery_queue_length
+      target:
+        type: Value
+        value: "20"
+      describedObject:
+        apiVersion: v1
+        kind: Service
+        name: redis-service
+  # Custom metric: Processing time
+  - type: Object
+    object:
+      metric:
+        name: task_processing_time_p95
+      target:
+        type: Value
+        value: "30"  # 30 seconds
+      describedObject:
+        apiVersion: v1
+        kind: Service
+        name: worker-service
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+      - type: Pods
+        value: 4
+        periodSeconds: 30
+      - type: Percent
+        value: 100
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 600
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 120
+
+---
+# ===============================================
+# FLOWER MONITORING FOR CELERY
+# ===============================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flower
+  namespace: trading-platform
+  labels:
+    app: flower
+    component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flower
+  template:
+    metadata:
+      labels:
+        app: flower
+        component: monitoring
+    spec:
+      containers:
+      - name: flower
+        image: mher/flower:latest
+        ports:
+        - containerPort: 5555
+          name: http
+        env:
+        - name: CELERY_BROKER_URL
+          value: "redis://:$(REDIS_PASSWORD)@redis-service:6379/3"
+        - name: FLOWER_PORT
+          value: "5555"
+        - name: FLOWER_BASIC_AUTH
+          value: "admin:flower-password"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: password
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flower-service
+  namespace: trading-platform
+  labels:
+    app: flower
+    component: monitoring
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5555
+    targetPort: 5555
+    name: http
+  selector:
+    app: flower

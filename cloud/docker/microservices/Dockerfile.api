@@ -1,0 +1,77 @@
+# ===============================================
+# TRADING API MICROSERVICE
+# ===============================================
+# High-performance REST API service
+# Handles external integrations and mobile app connections
+
+FROM tradingbot/base:latest as production
+
+# Service-specific metadata
+LABEL service="trading-api"
+LABEL component="backend"
+LABEL tier="api"
+
+# Switch to root for installation
+USER root
+
+# Install FastAPI and high-performance dependencies
+RUN pip install --no-cache-dir \
+    fastapi>=0.104.0 \
+    uvicorn[standard]>=0.24.0 \
+    pydantic>=2.5.0 \
+    python-multipart>=0.0.6 \
+    python-jose[cryptography]>=3.3.0 \
+    passlib[bcrypt]>=1.7.4 \
+    slowapi>=0.1.9
+
+# Copy API service files
+COPY api/ /app/api/ 2>/dev/null || mkdir -p /app/api
+COPY utils/ /app/utils/
+COPY config/ /app/config/
+
+# Create API application if it doesn't exist
+RUN if [ ! -f /app/api/main.py ]; then \
+        echo 'from fastapi import FastAPI\napp = FastAPI(title="Trading Bot API")\n@app.get("/health")\ndef health(): return {"status": "healthy"}' > /app/api/main.py; \
+    fi
+
+# Copy configuration
+COPY cloud/configs/env-templates/api.env.template /app/config/
+COPY cloud/configs/security/api-security.conf /app/config/
+
+# Set proper permissions
+RUN chown -R tradingbot:tradingbot /app && \
+    chmod 755 /app/api/*.py
+
+# Create runtime directories
+RUN mkdir -p /app/{uploads,temp,cache} && \
+    chown -R tradingbot:tradingbot /app/{uploads,temp,cache}
+
+# Switch back to non-root user
+USER tradingbot
+
+# Environment variables
+ENV SERVICE_NAME=trading-api
+ENV SERVICE_PORT=8000
+ENV LOG_LEVEL=INFO
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# API-specific health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Expose API port
+EXPOSE 8000
+
+# Volume mounts for persistence
+VOLUME ["/app/logs", "/app/uploads", "/app/cache"]
+
+# Production startup with Uvicorn
+CMD ["uvicorn", "api.main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--workers", "4", \
+     "--loop", "uvloop", \
+     "--http", "httptools", \
+     "--access-log", \
+     "--log-config", "/app/config/logging.json"]

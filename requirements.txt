@@ -1,0 +1,114 @@
+# ===============================================
+# TRADING BOT - RUNTIME DEPENDENCIES
+# ===============================================
+# Pinned to installed versions for reproducibility.
+# Last cleaned: 2026-02-05
+# Install: pip install -r requirements.txt
+# Dev tools: pip install -r requirements-dev.txt
+# Optional ML/NLP: pip install -r requirements-optional.txt
+
+# ===============================================
+# CORE
+# ===============================================
+python-dotenv==1.1.1
+requests==2.32.5
+schedule==1.2.2
+pandas==2.3.3
+numpy==2.3.3
+
+# ===============================================
+# BACKTESTING & TECHNICAL ANALYSIS
+# ===============================================
+vectorbt==0.28.4
+TA-Lib==0.6.8
+scipy==1.17.0
+yfinance==1.1.0
+arch==8.0.0                                # GARCH volatility models
+
+# Note: TA-Lib requires separate binary installation
+# Windows: pip install TA-Lib from pre-built wheel
+# macOS: brew install ta-lib && pip install TA-Lib
+# Linux: apt-get install libta-lib-dev && pip install TA-Lib
+
+# ===============================================
+# EXCHANGE APIs
+# ===============================================
+alpaca-py==0.43.2                          # Stocks/crypto (alpaca.trading.client)
+oandapyV20==0.7.2                          # Forex
+ccxt==4.5.34                               # Unified crypto exchanges
+
+# ===============================================
+# WEB SCRAPING
+# ===============================================
+beautifulsoup4==4.14.3
+lxml==6.0.2                                # BS4 parser backend
+
+# ===============================================
+# DATABASE
+# ===============================================
+SQLAlchemy==2.0.46
+
+# ===============================================
+# WEB DASHBOARD
+# ===============================================
+Flask==3.1.2
+flask-cors==6.0.2
+Flask-SocketIO==5.6.0                      # WebSocket support (mobile dashboard)
+gunicorn==25.0.1
+
+# ===============================================
+# ASYNC & HTTP
+# ===============================================
+aiohttp==3.13.3
+httpx==0.28.1
+websockets==13.1
+tenacity==9.1.2                            # Retry with backoff
+
+# ===============================================
+# NOTIFICATIONS
+# ===============================================
+python-telegram-bot==22.6
+
+# ===============================================
+# VISUALIZATION
+# ===============================================
+matplotlib==3.10.8
+plotly==5.24.1
+
+# ===============================================
+# CRYPTO / BLOCKCHAIN
+# ===============================================
+web3==7.14.0
+
+# ===============================================
+# MACHINE LEARNING (core)
+# ===============================================
+scikit-learn==1.8.0
+joblib==1.5.3
+
+# ===============================================
+# SECURITY & CRYPTOGRAPHY
+# ===============================================
+cryptography==46.0.5
+pycryptodome==3.23.0
+PyJWT==2.11.0
+
+# ===============================================
+# IMAGE PROCESSING
+# ===============================================
+Pillow==12.1.1
+
+# ===============================================
+# UTILITIES
+# ===============================================
+pytz==2025.2
+python-dateutil==2.9.0.post0
+PyYAML==6.0.1
+
+# ===============================================
+# TRANSITIVE DEPS - minimum safe versions (CVE floors)
+# ===============================================
+# These are pulled in by packages above, but we pin
+# minimums to prevent pip from resolving vulnerable versions.
+urllib3>=2.6.3                             # CVE: compressed data amplification
+Werkzeug>=3.1.5                            # CVE: RCE in dev server

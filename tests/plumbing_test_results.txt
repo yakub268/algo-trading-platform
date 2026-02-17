@@ -1,0 +1,78 @@
+[11:34:48] ============================================================
+[11:34:48] PLUMBING TEST (ALPACA PAPER) — 2026-02-06T11:34:48.072583
+[11:34:48] DB: C:\Users\yakub\Desktop\trading_bot\data\live\trading_master.db
+[11:34:48] Base: C:\Users\yakub\Desktop\trading_bot
+[11:34:48] Exchange: Alpaca Paper (https://paper-api.alpaca.markets)
+[11:34:48] ============================================================
+[11:34:48] 
+============================================================
+[11:34:48] TEST 1: DATABASE CONNECTIVITY
+[11:34:48] ============================================================
+[11:34:48]   [PASS] DB Connect — 74 existing trades
+[11:34:48]   [PASS] DB Write — Inserted PLUMBING_TEST_20260206_113448
+[11:34:48]   [PASS] DB Read — Found trade: status=open
+[11:34:48]   [PASS] DB Update — Trade closed with PnL
+[11:34:48]   [PASS] DB Cleanup — Test trade removed
+[11:34:48] 
+============================================================
+[11:34:48] TEST 2: SIGNAL FORMAT
+[11:34:48] ============================================================
+[11:34:48]   [PASS] Signal field 'symbol' — BTC/USD
+[11:34:48]   [PASS] Signal field 'action' — buy
+[11:34:48]   [PASS] Signal field 'price' — 95000.0
+[11:34:48]   [PASS] Signal field 'quantity' — 0.0001
+[11:34:48]   [PASS] Action parsing — action=buy, is_close=False
+[11:34:48]   [PASS] Already-executed check — status=filled
+[11:34:48] 
+============================================================
+[11:34:48] TEST 3: EXCHANGE CONNECTIVITY (Alpaca Paper)
+[11:34:48] ============================================================
+[11:34:48]   [PASS] Alpaca Init — Client connected (paper=True)
+[11:34:48]   [PASS] BTC Price — $69,733.98
+[11:34:49]   [PASS] Alpaca Account — Equity: $100,000.00, Cash: $100,000.00
+[11:34:49] 
+============================================================
+[11:34:49] TEST 4: ALPACA PAPER MICRO-TRADE EXECUTION
+[11:34:49] ============================================================
+[11:34:49]   Placing market buy: $10.00 of BTC/USD on Alpaca paper...
+[11:34:49]   [PASS] Market Buy — Order ID: cce833cc-55b5-4014-90b3-e4d71df44b76, Status: OrderStatus.PENDING_NEW
+[11:34:49] 
+============================================================
+[11:34:49] TEST 5: DATABASE TRACKING
+[11:34:49] ============================================================
+[11:34:49]   [PASS] DB Track Open — entry=$69,733.98, qty=0.00014340
+[11:34:49] 
+  Waiting 10 seconds for order to settle...
+[11:34:59] 
+============================================================
+[11:34:59] TEST 6: EXIT / CLOSE TRACKING
+[11:34:59] ============================================================
+[11:34:59]   Selling 0.00014016 BTC (from Alpaca positions)...
+[11:34:59]   [PASS] Market Sell — Order: 5b5e61e8-9b13-44d9-acfe-d4aaede8815d
+[11:34:59]   [PASS] DB Track Close — PnL: $0.0090 (+0.0903%)
+[11:34:59] 
+============================================================
+[11:34:59] TEST 7: P&L CALCULATION
+[11:34:59] ============================================================
+[11:34:59]   [PASS] P&L Formula — DB: $0.0090, Expected: $0.0090
+[11:34:59]   [PASS] P&L Pct Formula — DB: 0.0903%, Expected: 0.0903%
+[11:34:59] 
+============================================================
+[11:34:59] TEST 8: DASHBOARD API
+[11:34:59] ============================================================
+[11:35:03]   [FAIL] Dashboard API — Not reachable — <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>
+[11:35:03] 
+============================================================
+[11:35:03] SUMMARY
+[11:35:03] ============================================================
+[11:35:03]   PASS: database
+[11:35:03]   PASS: signal_format
+[11:35:03]   PASS: exchange
+[11:35:03]   PASS: live_trade
+[11:35:03]   PASS: exit
+[11:35:03]   PASS: pnl
+[11:35:03]   FAIL: dashboard
+[11:35:03] 
+  6/7 passed, 1 failed
+[11:35:03] 
+  1 TESTS FAILED — See details above

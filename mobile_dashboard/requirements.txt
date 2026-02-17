@@ -1,0 +1,56 @@
+# Mobile Trading Dashboard Requirements
+# =====================================
+# Production-ready dependencies for mobile dashboard
+
+# Core Flask and Web Framework
+flask>=2.3.0
+flask-socketio>=5.3.0
+flask-cors>=4.0.0
+flask-limiter>=3.5.0
+gunicorn>=21.2.0
+
+# WebSocket Support
+python-socketio>=5.8.0
+eventlet>=0.33.0
+
+# Database and Caching
+redis>=4.6.0
+sqlite3  # Built-in Python module
+
+# Authentication and Security
+pyjwt>=2.8.0
+werkzeug>=2.3.0
+cryptography>=46.0.5
+
+# Async Support
+aiohttp>=3.8.0
+asyncio>=3.4.3
+httpx>=0.24.0
+
+# Data Processing
+pandas>=2.1.0
+numpy>=1.25.0
+python-dotenv>=1.0.0
+
+# Trading Bot Integration (from main project)
+# These should already be installed in the main trading bot
+# alpaca-trade-api>=3.0.0
+# ccxt>=4.0.0
+# oandapyV20>=0.7.2
+
+# Mobile Dashboard Specific
+push-notifications>=3.0.0  # For PWA push notifications
+
+# Development and Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+black>=23.7.0
+flake8>=6.0.0
+
+# Production Deployment
+supervisor>=4.2.0  # Process management
+nginx>=1.24.0  # Reverse proxy (system package)
+
+# Optional: Monitoring and Logging
+sentry-sdk[flask]>=1.32.0  # Error tracking
+structlog>=23.1.0  # Structured logging

@@ -1,0 +1,75 @@
+# AI Veto Layer Configuration
+# ===========================
+# Created: January 2026
+
+ai_veto:
+  enabled: true
+  dry_run: true  # Set false to actually block trades
+
+  # Confidence thresholds (from research: 0.7-0.8 optimal)
+  confidence_thresholds:
+    approve: 0.65
+    strong_approve: 0.80
+    veto: 0.35
+
+  # Position sizing based on confidence
+  sizing:
+    min_multiplier: 0.25  # Never less than 25% of intended size
+    max_multiplier: 1.0
+    scale_by_confidence: true
+
+llm:
+  # Primary provider (cheapest)
+  primary_provider: deepseek
+
+  # Model settings
+  models:
+    deepseek:
+      model: deepseek-chat
+      max_tokens: 400
+      temperature: 0.1
+    claude:
+      model: claude-3-haiku-20240307
+      max_tokens: 400
+      temperature: 0.1
+
+  # Cost controls
+  max_daily_cost_usd: 5.00
+  max_calls_per_hour: 100
+
+  # Caching
+  cache:
+    enabled: true
+    ttl_seconds: 3600  # 1 hour
+    db_path: ai/cache/response_cache.db
+
+# Bot-specific settings
+bot_overrides:
+  # Skip AI veto for certain bots (signal only, no trades)
+  skip_veto:
+    - Market-Scanner
+    - Sentiment-Bot
+
+  # Always run AI veto (even if global disabled)
+  force_veto:
+    - Kalshi-Hourly-Crypto
+    - Alpaca-Crypto-RSI
+
+# Market regime detection
+regime_detection:
+  enabled: true
+  update_interval_minutes: 15
+
+  # Regime thresholds
+  volatile:
+    vix_above: 25
+    spy_atr_percentile: 0.80
+
+  trending:
+    ma_alignment: true
+    min_trend_strength: 0.6
+
+# Logging
+logging:
+  log_all_decisions: true
+  db_path: ai/cache/veto_decisions.db

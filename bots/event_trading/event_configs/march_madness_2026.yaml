@@ -1,0 +1,115 @@
+event:
+  name: "March Madness 2026"
+  id: march_madness_2026
+  sport: basketball
+  espn_league: mens-college-basketball
+
+timing:
+  start: "2026-03-17T12:00:00-06:00"
+  end: "2026-04-06T23:00:00-06:00"
+  poll_interval: 30
+
+kalshi:
+  series_tickers: [KXNCAA, KXCBB, KXMM]
+  search_keywords: [march madness, ncaa, final four, bracket, tournament]
+
+risk:
+  max_exposure: 500
+  max_single_trade: 50
+  circuit_breaker_loss: 100
+
+odds:
+  sport_key: basketball_ncaab
+  bookmakers: [draftkings, fanduel, betmgm, caesars, pointsbet]
+
+sentiment:
+  subreddits: [CollegeBasketball, sportsbook, ncaaBBallStreams]
+  news_queries: ["march madness", "ncaa tournament", "final four"]
+  teams: [Duke, Kansas, UConn, Houston, Auburn, Tennessee, Purdue, Gonzaga]
+
+triggers:
+  # --- Blowout / Favorite scenarios ---
+  BLOWOUT_EARLY:
+    action: buy
+    side: "no"
+    target: favorite_ml
+    max_contracts: 20
+    description: "Favorite up 15+ in first half — fade the spread"
+
+  BLOWOUT_GARBAGE:
+    action: buy
+    side: "no"
+    target: total_points_over
+    max_contracts: 15
+    description: "30+ point lead — garbage time scoring boosts totals"
+
+  # --- Upset / Cinderella scenarios ---
+  UPSET_ALERT:
+    action: buy
+    side: "yes"
+    target: underdog_ml
+    max_contracts: 25
+    description: "Lower seed leading by 5+ at halftime — Cinderella run"
+
+  CINDERELLA_RUN:
+    action: buy
+    side: "yes"
+    target: underdog_advance
+    max_contracts: 20
+    description: "12+ seed wins Round 1 — buy advancement props"
+
+  BRACKET_BUSTER:
+    action: buy
+    side: "yes"
+    target: underdog_ml
+    max_contracts: 15
+    description: "1/2 seed trailing at halftime — historic upset brewing"
+
+  # --- Close game scenarios ---
+  CLOSE_GAME_HALF:
+    action: buy
+    side: "yes"
+    target: underdog_ml
+    max_contracts: 15
+    description: "Within 3 points at halftime — coin flip, back the dog"
+
+  BUZZER_BEATER:
+    action: buy
+    side: "yes"
+    target: game_total_over
+    max_contracts: 10
+    description: "Tied or within 2 in final minute — OT likely, totals go up"
+
+  # --- Scoring pace scenarios ---
+  LOW_SCORING_HALF:
+    action: buy
+    side: "yes"
+    target: second_half_over
+    max_contracts: 10
+    description: "Combined under 55 at halftime — regression, 2H over"
+
+  HIGH_SCORING_HALF:
+    action: buy
+    side: "yes"
+    target: game_total_over
+    max_contracts: 10
+    description: "Combined over 85 at halftime — pace stays hot"
+
+  # --- Momentum / run scenarios ---
+  SCORING_RUN:
+    action: buy
+    side: "yes"
+    target: team_ml
+    max_contracts: 15
+    description: "10-0 or 12-0 run — momentum shift, buy the runner"
+
+  COMEBACK_ALERT:
+    action: buy
+    side: "yes"
+    target: underdog_ml
+    max_contracts: 20
+    description: "Team erases 10+ deficit — momentum and crowd shift"
+
+espn:
+  date: ""
+  teams: []

@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard V5 Mockup - Visual Enhancements Preview</title>
+    <style>
+        :root {
+            --bg-primary: #020617;
+            --bg-secondary: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.6);
+            --border-primary: rgba(51, 65, 85, 0.5);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --green: #10b981;
+            --green-bright: #4ade80;
+            --green-bg: rgba(16, 185, 129, 0.15);
+            --amber: #f59e0b;
+            --amber-bg: rgba(245, 158, 11, 0.15);
+            --red: #ef4444;
+            --red-bg: rgba(239, 68, 68, 0.15);
+            --blue: #3b82f6;
+            --blue-bg: rgba(59, 130, 246, 0.15);
+            --purple: #8b5cf6;
+            --purple-bg: rgba(139, 92, 246, 0.15);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+            background: linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e1b4b 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .mockup-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .mockup-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .mockup-header h1 {
+            font-size: 48px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+        }
+
+        .mockup-header p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .version-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: rgba(139, 92, 246, 0.2);
+            border: 2px solid var(--purple);
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--purple);
+            margin-top: 12px;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+
+        .comparison-section {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .section-label {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .v4-label {
+            color: var(--text-secondary);
+        }
+
+        .v5-label {
+            color: var(--purple);
+        }
+
+        /* V4 STYLES (OLD) */
+        .card-v4 {
+            background: var(--bg-card);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .badge-v4 {
+            padding: 3px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .badge-v4.green { background: var(--green-bg); color: var(--green); }
+
+        .kpi-v4 .kpi-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .kpi-v4 .kpi-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--green);
+        }
+
+        .btn-v4 {
+            padding: 10px 20px;
+            background: #dc2626;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* V5 STYLES (NEW) - ENHANCED */
+        .card-v5 {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-v5::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        }
+
+        .card-v5:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
+            border-color: rgba(148, 163, 184, 0.2);
+        }
+
+        .badge-v5 {
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .badge-v5.green {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(16, 185, 129, 0.15));
+            color: var(--green-bright);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-v5:hover {
+            transform: scale(1.05);
+        }
+
+        /* Enhanced KPI Card with Gradient */
+        .kpi-v5 {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-v5::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .kpi-v5:hover::before {
+            opacity: 1;
+        }
+
+        .kpi-v5 .kpi-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-v5 .kpi-value {
+            font-size: 42px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--green-bright) 0%, var(--green) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .trend-arrow {
+            font-size: 32px;
+            opacity: 0.9;
+        }
+
+        /* Enhanced Button */
+        .btn-v5 {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-v5::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-v5:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn-v5:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-v5:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        /* API Status */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--green-bright);
+        }
+
+        /* Enhanced Sparkline */
+        .sparkline-v5 {
+            height: 40px;
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            margin-top: 12px;
+        }
+
+        .sparkline-bar-v5 {
+            flex: 1;
+            background: linear-gradient(to top,
+                rgba(16, 185, 129, 0.3) 0%,
+                rgba(16, 185, 129, 0.6) 50%,
+                rgba(74, 222, 128, 0.9) 100%
+            );
+            border-radius: 4px 4px 0 0;
+            transition: all 0.3s ease;
+        }
+
+        .sparkline-bar-v5:hover {
+            background: linear-gradient(to top,
+                rgba(16, 185, 129, 0.5) 0%,
+                rgba(16, 185, 129, 0.8) 50%,
+                rgba(74, 222, 128, 1) 100%
+            );
+            transform: scaleY(1.1);
+        }
+
+        /* Custom Scrollbar */
+        .scrollable-v5 {
+            max-height: 200px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .scrollable-v5::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollable-v5::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 10px;
+        }
+
+        .scrollable-v5::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--purple) 0%, var(--blue) 100%);
+            border-radius: 10px;
+        }
+
+        .scrollable-v5::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #a78bfa 0%, #60a5fa 100%);
+        }
+
+        /* Feature List */
+        .features-section {
+            margin-top: 60px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 30px;
+        }
+
+        .feature-card {
+            background: rgba(30, 41, 59, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .feature-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .feature-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        @media (max-width: 1024px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .demo-content {
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="mockup-container">
+
+        <!-- Header -->
+        <div class="mockup-header">
+            <h1>Dashboard V5</h1>
+            <p>Next-Generation Visual Enhancements</p>
+            <div class="version-badge">⚡ PREVIEW BUILD</div>
+        </div>
+
+        <!-- Comparison: Basic Card -->
+        <div class="comparison-grid">
+            <div class="comparison-section">
+                <div class="section-label v4-label">
+                    <span>📦</span> V4 - Current
+                </div>
+                <div class="card-v4">
+                    <h3 style="font-size: 14px; margin-bottom: 12px;">Card Component</h3>
+                    <p style="font-size: 12px; color: var(--text-secondary);">
+                        Basic card with subtle shadow and simple border.
+                    </p>
+                </div>
+            </div>
+
+            <div class="comparison-section">
+                <div class="section-label v5-label">
+                    <span>✨</span> V5 - Enhanced
+                </div>
+                <div class="card-v5">
+                    <h3 style="font-size: 14px; margin-bottom: 12px; font-weight: 700;">Card Component</h3>
+                    <p style="font-size: 12px; color: var(--text-secondary);">
+                        Glassmorphism with backdrop blur, deeper shadows, hover lift effect.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison: Status Badges -->
+        <div class="comparison-grid">
+            <div class="comparison-section">
+                <div class="section-label v4-label">
+                    <span>🏷️</span> V4 - Status Badge
+                </div>
+                <div style="padding: 20px;">
+                    <span class="badge-v4 green">ONLINE</span>
+                </div>
+            </div>
+
+            <div class="comparison-section">
+                <div class="section-label v5-label">
+                    <span>✨</span> V5 - Enhanced Status Badge
+                </div>
+                <div style="padding: 20px;">
+                    <span class="badge-v5 green">ONLINE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison: KPI Cards -->
+        <div class="comparison-grid">
+            <div class="comparison-section">
+                <div class="section-label v4-label">
+                    <span>📊</span> V4 - KPI Display
+                </div>
+                <div class="card-v4 kpi-v4">
+                    <div class="kpi-label">💰 Total P&L</div>
+                    <div class="kpi-value">+$127.45</div>
+                </div>
+            </div>
+
+            <div class="comparison-section">
+                <div class="section-label v5-label">
+                    <span>✨</span> V5 - Enhanced KPI with Gradient & Arrow
+                </div>
+                <div class="card-v5 kpi-v5">
+                    <div class="kpi-label">💰 Total P&L</div>
+                    <div class="kpi-value">
+                        <span class="trend-arrow">↑</span>
+                        +$127.45
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison: Emergency Button -->
+        <div class="comparison-grid">
+            <div class="comparison-section">
+                <div class="section-label v4-label">
+                    <span>🔴</span> V4 - Kill Switch
+                </div>
+                <div style="padding: 20px;">
+                    <button class="btn-v4">⚡ KILL SWITCH</button>
+                </div>
+            </div>
+
+            <div class="comparison-section">
+                <div class="section-label v5-label">
+                    <span>✨</span> V5 - Enhanced Kill Switch
+                </div>
+                <div style="padding: 20px;">
+                    <button class="btn-v5">⚡ KILL SWITCH</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison: API Status -->
+        <div class="comparison-grid">
+            <div class="comparison-section">
+                <div class="section-label v4-label">
+                    <span>📶</span> V4 - API Status
+                </div>
+                <div class="card-v4">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="color: var(--green); font-size: 20px;">●</span>
+                        <span style="font-weight: 600;">System Online</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comparison-section">
+                <div class="section-label v5-label">
+                    <span>✨</span> V5 - Enhanced API Status
+                </div>
+                <div class="card-v5">
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span style="font-weight: 700;">System Online</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison: Sparklines -->
+        <div class="comparison-grid">
+            <div class="comparison-section">
+                <div class="section-label v4-label">
+                    <span>📈</span> V4 - Sparkline Chart
+                </div>
+                <div class="card-v4">
+                    <div style="height: 24px; display: flex; align-items: flex-end; gap: 2px;">
+                        <div style="flex: 1; height: 40%; background: linear-gradient(to top, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.5)); border-radius: 2px 2px 0 0;"></div>
+                        <div style="flex: 1; height: 60%; background: linear-gradient(to top, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.5)); border-radius: 2px 2px 0 0;"></div>
+                        <div style="flex: 1; height: 45%; background: linear-gradient(to top, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.5)); border-radius: 2px 2px 0 0;"></div>
+                        <div style="flex: 1; height: 80%; background: linear-gradient(to top, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.5)); border-radius: 2px 2px 0 0;"></div>
+                        <div style="flex: 1; height: 90%; background: linear-gradient(to top, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.5)); border-radius: 2px 2px 0 0;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comparison-section">
+                <div class="section-label v5-label">
+                    <span>✨</span> V5 - Enhanced Sparkline with Multi-Stop Gradient
+                </div>
+                <div class="card-v5">
+                    <div class="sparkline-v5">
+                        <div class="sparkline-bar-v5" style="height: 40%"></div>
+                        <div class="sparkline-bar-v5" style="height: 60%"></div>
+                        <div class="sparkline-bar-v5" style="height: 45%"></div>
+                        <div class="sparkline-bar-v5" style="height: 80%"></div>
+                        <div class="sparkline-bar-v5" style="height: 90%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison: Custom Scrollbar -->
+        <div class="comparison-grid">
+            <div class="comparison-section">
+                <div class="section-label v4-label">
+                    <span>📜</span> V4 - Default Scrollbar
+                </div>
+                <div class="card-v4">
+                    <div style="max-height: 150px; overflow-y: auto; padding-right: 8px;">
+                        <div class="demo-content">Item 1</div>
+                        <div class="demo-content">Item 2</div>
+                        <div class="demo-content">Item 3</div>
+                        <div class="demo-content">Item 4</div>
+                        <div class="demo-content">Item 5</div>
+                        <div class="demo-content">Item 6</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comparison-section">
+                <div class="section-label v5-label">
+                    <span>✨</span> V5 - Custom Gradient Scrollbar
+                </div>
+                <div class="card-v5">
+                    <div class="scrollable-v5">
+                        <div class="demo-content">Item 1</div>
+                        <div class="demo-content">Item 2</div>
+                        <div class="demo-content">Item 3</div>
+                        <div class="demo-content">Item 4</div>
+                        <div class="demo-content">Item 5</div>
+                        <div class="demo-content">Item 6</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- V5 Features Section -->
+        <div class="features-section">
+            <div class="mockup-header" style="margin-bottom: 30px;">
+                <h2 style="font-size: 32px; font-weight: 800; color: var(--text-primary);">
+                    Complete V5 Enhancement List
+                </h2>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <div class="feature-title">Deeper Shadows</div>
+                    <div class="feature-desc">
+                        Cards use shadow-xl and shadow-2xl for layered depth. Hover states add extra elevation.
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">💎</div>
+                    <div class="feature-title">Glassmorphism</div>
+                    <div class="feature-desc">
+                        backdrop-blur-xl on all cards with translucent backgrounds for modern glass effect.
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🌈</div>
+                    <div class="feature-title">Gradient Overlays</div>
+                    <div class="feature-desc">
+                        KPI cards feature subtle gradient backgrounds that match data type (green for profit, red for loss).
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">✨</div>
+                    <div class="feature-title">Enhanced Borders</div>
+                    <div class="feature-desc">
+                        Refined border opacity with gradient backgrounds for visual depth without distracting effects.
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">Enhanced Typography</div>
+                    <div class="feature-desc">
+                        Bolder font weights (900 for KPIs, 700 for headers) with gradient text fills.
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <div class="feature-title">Trend Arrows</div>
+                    <div class="feature-desc">
+                        P&L values display ↑ or ↓ arrows colored to match positive/negative performance.
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-title">Smooth Transforms</div>
+                    <div class="feature-desc">
+                        Cards and buttons scale on hover with cubic-bezier easing for polished feel.
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">💫</div>
+                    <div class="feature-title">Smooth Transitions</div>
+                    <div class="feature-desc">
+                        All interactive elements use cubic-bezier easing for professional motion design.
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <div class="feature-title">Multi-Stop Gradients</div>
+                    <div class="feature-desc">
+                        Sparkline bars use 3-stop gradients (dark→medium→bright) for depth perception.
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🎚️</div>
+                    <div class="feature-title">Custom Scrollbars</div>
+                    <div class="feature-desc">
+                        Purple-to-blue gradient scrollbar thumbs with glow effect on hover.
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔴</div>
+                    <div class="feature-title">Enhanced Kill Switch</div>
+                    <div class="feature-desc">
+                        Emergency button with ripple effect on hover, lift animation, and gradient background.
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🎭</div>
+                    <div class="feature-title">Border Opacity</div>
+                    <div class="feature-desc">
+                        Borders use rgba() with varying opacity (0.1 default, 0.2 on hover) for subtlety.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; margin-top: 80px; padding: 40px; color: var(--text-muted);">
+            <p style="font-size: 14px; margin-bottom: 8px;">Dashboard V5 Mockup Preview</p>
+            <p style="font-size: 12px;">Hover over elements to see interactive effects</p>
+        </div>
+
+    </div>
+</body>
+</html>

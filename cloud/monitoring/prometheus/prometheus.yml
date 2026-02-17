@@ -1,0 +1,363 @@
+# ===============================================
+# PROMETHEUS CONFIGURATION
+# ===============================================
+# Comprehensive monitoring for trading bot platform
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'trading-platform'
+    environment: 'production'
+
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # ===============================================
+  # KUBERNETES INFRASTRUCTURE MONITORING
+  # ===============================================
+
+  # Kubernetes API server
+  - job_name: 'kubernetes-apiservers'
+    kubernetes_sd_configs:
+      - role: endpoints
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: default;kubernetes;https
+
+  # Kubernetes nodes
+  - job_name: 'kubernetes-nodes'
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    kubernetes_sd_configs:
+      - role: node
+    relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - target_label: __address__
+        replacement: kubernetes.default.svc:443
+      - source_labels: [__meta_kubernetes_node_name]
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/${1}/proxy/metrics
+
+  # Kubernetes node exporters
+  - job_name: 'kubernetes-node-exporter'
+    kubernetes_sd_configs:
+      - role: endpoints
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_endpoints_name]
+        action: keep
+        regex: node-exporter
+      - source_labels: [__meta_kubernetes_endpoint_address_target_kind, __meta_kubernetes_endpoint_address_target_name]
+        separator: ;
+        regex: Node;(.*)
+        target_label: node
+        replacement: ${1}
+
+  # Kubernetes pods
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+
+  # ===============================================
+  # TRADING PLATFORM SERVICES
+  # ===============================================
+
+  # Trading Orchestrator
+  - job_name: 'trading-orchestrator'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - trading-platform
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: orchestrator-service
+      - source_labels: [__meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: metrics
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Trading Dashboard
+  - job_name: 'trading-dashboard'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - trading-platform
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: dashboard-service
+      - source_labels: [__meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: metrics
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # Trading API
+  - job_name: 'trading-api'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - trading-platform
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: api-service
+      - source_labels: [__meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: metrics
+    metrics_path: '/metrics'
+    scrape_interval: 5s  # More frequent for API metrics
+
+  # Background Workers
+  - job_name: 'trading-workers'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - trading-platform
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: worker-service
+      - source_labels: [__meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: metrics
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # ===============================================
+  # DATABASE AND CACHE MONITORING
+  # ===============================================
+
+  # PostgreSQL
+  - job_name: 'postgresql'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - trading-platform
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: postgres-service
+      - source_labels: [__meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: metrics
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Redis
+  - job_name: 'redis'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - trading-platform
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: redis-service
+      - source_labels: [__meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: metrics
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # ===============================================
+  # INFRASTRUCTURE MONITORING
+  # ===============================================
+
+  # NGINX Ingress Controller
+  - job_name: 'nginx-ingress'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - trading-platform
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: nginx-ingress-controller
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        target_label: __address__
+        regex: (.+)
+        replacement: ${1}:10254
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # cert-manager
+  - job_name: 'cert-manager'
+    kubernetes_sd_configs:
+      - role: endpoints
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: cert-manager.*
+      - source_labels: [__meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: tcp-prometheus-servicemonitor
+
+  # ===============================================
+  # EXTERNAL SERVICES MONITORING
+  # ===============================================
+
+  # Trading Exchange APIs (health checks)
+  - job_name: 'exchange-apis'
+    static_configs:
+      - targets:
+        - 'alpaca-api-health:8080'
+        - 'kalshi-api-health:8080'
+        - 'oanda-api-health:8080'
+    metrics_path: '/metrics'
+    scrape_interval: 60s
+
+  # Market Data Feeds
+  - job_name: 'market-data-feeds'
+    static_configs:
+      - targets:
+        - 'yahoo-finance-health:8080'
+        - 'alpha-vantage-health:8080'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # ===============================================
+  # CUSTOM METRICS FOR TRADING
+  # ===============================================
+
+  # Custom metrics endpoint for trading-specific metrics
+  - job_name: 'custom-metrics'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - trading-platform
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: custom-metrics-apiserver
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Blackbox exporter for external endpoint monitoring
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - https://trading.example.com
+        - https://api.trading.example.com
+        - https://dashboard.trading.example.com
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # ===============================================
+  # SECURITY AND COMPLIANCE MONITORING
+  # ===============================================
+
+  # Falco security events
+  - job_name: 'falco'
+    kubernetes_sd_configs:
+      - role: endpoints
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: falco.*
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+# ===============================================
+# METRIC RELABELING FOR COST OPTIMIZATION
+# ===============================================
+metric_relabel_configs:
+  # Drop high cardinality metrics that aren't needed
+  - source_labels: [__name__]
+    regex: 'go_memstats_.*'
+    action: drop
+
+  # Keep only essential process metrics
+  - source_labels: [__name__]
+    regex: 'process_.*'
+    target_label: __tmp_keep
+    replacement: 'no'
+  - source_labels: [__name__]
+    regex: 'process_(cpu_seconds_total|resident_memory_bytes|open_fds)'
+    target_label: __tmp_keep
+    replacement: 'yes'
+  - source_labels: [__tmp_keep]
+    regex: 'no'
+    action: drop
+
+# ===============================================
+# REMOTE STORAGE CONFIGURATION
+# ===============================================
+remote_write:
+  - url: "https://prometheus-remote-storage.example.com/api/v1/write"
+    basic_auth:
+      username: "trading-platform"
+      password_file: "/etc/prometheus/remote_storage_password"
+    write_relabel_configs:
+      # Only send critical metrics to remote storage
+      - source_labels: [__name__]
+        regex: '(trading_.*|api_.*|error_.*|up|probe_success)'
+        action: keep
+
+# ===============================================
+# STORAGE CONFIGURATION
+# ===============================================
+storage:
+  tsdb:
+    retention.time: 15d
+    retention.size: 100GB
+    wal-compression: true

@@ -1,0 +1,93 @@
+# ===============================================
+# KIBANA CONFIGURATION
+# ===============================================
+# Analytics and visualization for trading platform logs
+
+# Server configuration
+server.name: trading-platform-kibana
+server.host: "0.0.0.0"
+server.port: 5601
+
+# Elasticsearch connection
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+elasticsearch.username: "kibana"
+elasticsearch.password: "${KIBANA_PASSWORD}"
+
+# Index patterns
+kibana.index: ".kibana"
+kibana.defaultAppId: "dashboard/trading-overview"
+
+# Security
+server.ssl.enabled: false
+elasticsearch.ssl.verificationMode: none
+
+# Logging
+logging.dest: stdout
+logging.silent: false
+logging.quiet: false
+logging.verbose: false
+
+# Performance settings
+server.maxPayloadBytes: 1048576
+elasticsearch.requestTimeout: 30000
+elasticsearch.shardTimeout: 30000
+
+# UI settings
+server.defaultRoute: "/app/dashboards"
+
+# Monitoring
+monitoring.enabled: true
+monitoring.kibana.collection.enabled: true
+
+# Advanced settings
+map.includeElasticMapsService: false
+telemetry.enabled: false
+telemetry.optIn: false
+
+# Custom branding (optional)
+server.customResponseHeaders:
+  "X-Frame-Options": "DENY"
+  "X-Content-Type-Options": "nosniff"
+
+# Saved objects encryption
+xpack.encryptedSavedObjects.encryptionKey: "${KIBANA_ENCRYPTION_KEY}"
+
+# Alerting configuration
+xpack.alerting.enabled: true
+xpack.alerting.defaultRuleRetryPolicy:
+  retries: 3
+  delay: 10s
+
+# Security (if using X-Pack)
+xpack.security.enabled: false
+
+# Monitoring
+xpack.monitoring.enabled: true
+xpack.monitoring.ui.enabled: true
+
+# Machine learning (if available)
+xpack.ml.enabled: false
+
+# Spaces
+xpack.spaces.enabled: true
+
+# Canvas
+xpack.canvas.enabled: true
+
+# Maps
+xpack.maps.enabled: true
+
+# Enterprise search
+enterpriseSearch.host: "http://enterprise-search:3002"
+
+# Saved objects
+savedObjects.maxImportPayloadBytes: 26214400
+
+# Data views
+data.search.aggs.shardDelay.enabled: true
+
+# Index management
+xpack.index_management.enabled: true
+
+# Snapshot and restore
+xpack.snapshot_restore.enabled: true
