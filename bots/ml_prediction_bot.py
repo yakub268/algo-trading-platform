@@ -278,6 +278,13 @@ class MLPredictionBot:
             logger.error("No valid crypto symbols configured — aborting scan")
             return []
 
+        # Overnight filter: 00:00-06:00 MT has 17-31% WR (-$14/49 trades)
+        # Skip new entries during these hours to avoid guaranteed losses
+        current_hour = datetime.now().hour
+        if current_hour < 6:
+            logger.info(f"Overnight filter: skipping scan (hour={current_hour}, resume at 06:00)")
+            return []
+
         try:
             # Check open position count from orchestrator DB
             open_position_count = self._count_open_positions()
@@ -442,6 +449,10 @@ class MLPredictionBot:
                 signal_strength, confidence, vol_forecast
             )
 
+            # BTC penalty: 31% WR vs 45-46% for ETH/SOL — halve position size
+            if 'BTC' in response.symbol:
+                position_size *= 0.5
+
             # Determine action
             action = self._determine_action(signal_direction, signal_strength, confidence)
 
@@ -459,8 +470,8 @@ class MLPredictionBot:
                 'confidence': confidence,
                 'volatility_forecast': vol_forecast,
                 'price': current_price,
-                'stop_loss': entry_price * 0.95,       # 5% stop loss
-                'take_profit': entry_price * 1.08,     # 8% take profit
+                'stop_loss': entry_price * 0.985,      # 1.5% stop loss (cut losers fast)
+                'take_profit': entry_price * 1.02,     # 2% take profit (take modest wins)
                 'position_size_usd': position_size,    # USD amount (orchestrator converts to qty)
                 'horizon_days': self.prediction_horizon,
                 'model_version': response.metadata.get('model_versions', {}),
@@ -712,8 +723,8 @@ class MLPredictionBot:
                     'confidence': confidence,
                     'volatility_forecast': 0.2,
                     'price': current_price,
-                    'stop_loss': current_price * 0.95,
-                    'take_profit': current_price * 1.08,
+                    'stop_loss': current_price * 0.985,
+                    'take_profit': current_price * 1.02,
                     'position_size_usd': self._calculate_position_size(strength, confidence, 0.2),
                     'horizon_days': self.prediction_horizon,
                     'timestamp': datetime.now(),

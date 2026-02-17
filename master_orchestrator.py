@@ -3115,21 +3115,35 @@ class MasterOrchestrator:
 
                 exit_reason = None
 
-                # Orchestrator is SAFETY NET only — wider than bot-internal thresholds
-                # Bots manage their own exits (RSI: 10%TP/5%SL, Multi-Mom: 5%SL, ACM: 4%SL)
-                # Orchestrator catches positions that slip through bot logic
-                tp_threshold = 0.15   # +15% take profit (safety net)
-                sl_threshold = -0.10  # -10% stop loss (safety net)
+                # ML-Prediction-Bot: tight exits based on trade data analysis
+                # Avg win +0.4% in 10min, avg loss -1.1% in 43min — cut losers fast,
+                # take modest profits, don't hold overnight
+                if bot_name == 'ML-Prediction-Bot':
+                    tp_threshold = 0.02    # +2% take profit (data shows +0.4% avg win)
+                    sl_threshold = -0.015  # -1.5% stop loss (cut losers before -1.1% avg)
+                    max_hold = 14400       # 4 hours max hold (not 24h)
 
-                # Take profit
-                if pnl_pct >= tp_threshold:
-                    exit_reason = 'take_profit'
-                # Stop loss
-                elif pnl_pct <= sl_threshold:
-                    exit_reason = 'stop_loss'
-                # Max hold: 24 hours
-                elif hold_seconds > 86400:
-                    exit_reason = 'max_hold_time_24h'
+                    # Trailing break-even: once +0.75%, move stop to entry (lock in gains)
+                    if pnl_pct >= 0.0075:
+                        # At +0.75%, any pullback below entry = exit
+                        if pnl_pct < 0.001:  # Pulled back to near-flat
+                            exit_reason = 'trailing_breakeven'
+                else:
+                    # Other bots: safety net thresholds (bots manage own exits)
+                    tp_threshold = 0.15   # +15% take profit (safety net)
+                    sl_threshold = -0.10  # -10% stop loss (safety net)
+                    max_hold = 86400      # 24 hours
+
+                if not exit_reason:
+                    # Take profit
+                    if pnl_pct >= tp_threshold:
+                        exit_reason = 'take_profit'
+                    # Stop loss
+                    elif pnl_pct <= sl_threshold:
+                        exit_reason = 'stop_loss'
+                    # Max hold time
+                    elif hold_seconds > max_hold:
+                        exit_reason = f'max_hold_time_{max_hold//3600}h'
 
                 if exit_reason:
                     quantity = float(trade.get('quantity', 0))
