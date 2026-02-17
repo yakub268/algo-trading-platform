@@ -260,7 +260,7 @@ class WeatherProphet(FleetBot):
         all_positions = super().get_open_positions()
         # Filter for weather tickers (KXHIGH prefix)
         weather_positions = [p for p in all_positions
-                           if p.get('ticker', '').startswith('KXHIGH')]
+                           if p.get('symbol', '').startswith('KXHIGH')]
         return weather_positions
 
 

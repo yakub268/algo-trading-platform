@@ -1901,6 +1901,17 @@ class MasterOrchestrator:
             except Exception as e:
                 logger.error(f"[Event-Edge] Exit check error: {e}")
 
+    def _check_fleet_exits(self):
+        """Background task: check fleet bot positions for exit conditions every 60s."""
+        state = self.bots.get('Fleet-Orchestrator')
+        if state and state.instance and hasattr(state.instance, 'check_exits'):
+            try:
+                exits = state.instance.check_exits()
+                if exits:
+                    logger.info(f"[Fleet] Closed {len(exits)} positions")
+            except Exception as e:
+                logger.error(f"[Fleet] Exit check error: {e}")
+
     def _determine_strategy_type(self, bot_name: str) -> str:
         """Determine strategy type based on bot name"""
         strategy_map = {
@@ -4021,6 +4032,13 @@ class MasterOrchestrator:
                 lambda: self._bot_executor.submit(self._check_event_exits)
             )
             logger.info("  [Event-Edge] Exit checker: every 60s")
+
+        # Fleet exit checker (runs alongside bot scan cycle)
+        if 'Fleet-Orchestrator' in self.bots:
+            schedule.every(60).seconds.do(
+                lambda: self._bot_executor.submit(self._check_fleet_exits)
+            )
+            logger.info("  [Fleet] Exit checker: every 60s")
 
         # V4: Schedule exit checking every 60 seconds
         schedule.every(60).seconds.do(self._check_momentum_exits)

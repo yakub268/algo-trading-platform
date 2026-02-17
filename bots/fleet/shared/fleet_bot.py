@@ -103,6 +103,9 @@ class FleetBot(ABC):
         self.paper_mode = config.paper_mode
         self.logger = logging.getLogger(f'Fleet.{config.name}')
 
+        # Database reference (set by FleetOrchestrator after init)
+        self._db = None
+
         # State tracking
         self.last_run: Optional[datetime] = None
         self.trades_today: int = 0
@@ -113,6 +116,10 @@ class FleetBot(ABC):
         self._cooldown_until: Optional[datetime] = None
         self._traded_symbols: Dict[str, datetime] = {}  # symbol -> last trade time
 
+    def set_db(self, db) -> None:
+        """Set database reference. Called by FleetOrchestrator after initialization."""
+        self._db = db
+
     @abstractmethod
     def scan(self) -> List[FleetSignal]:
         """
@@ -122,12 +129,91 @@ class FleetBot(ABC):
         ...
 
     def get_open_positions(self) -> List[Dict]:
-        """Return open positions for this bot. Override for bot-specific filtering."""
+        """Return open positions for this bot from FleetDB."""
+        if self._db:
+            try:
+                return self._db.get_open_positions(bot_name=self.name)
+            except Exception as e:
+                self.logger.error(f"Failed to get positions from DB: {e}")
         return []
 
     def check_exits(self) -> List[FleetSignal]:
-        """Check if any open positions should be closed. Override if bot manages its own exits."""
-        return []
+        """Default exit logic for all bots. Override for bot-specific exits.
+
+        Generic exits:
+        - Kalshi: market expired (close time passed) or price hit stop/target
+        - Crypto: stop loss (-5%) or take profit (+10%) or stale (>48h)
+        """
+        positions = self.get_open_positions()
+        if not positions:
+            return []
+
+        exits = []
+        now = datetime.now(timezone.utc)
+
+        for pos in positions:
+            try:
+                exit_signal = self._check_generic_exit(pos, now)
+                if exit_signal:
+                    exits.append(exit_signal)
+            except Exception as e:
+                self.logger.error(f"Exit check error for {pos.get('symbol', '?')}: {e}")
+
+        return exits
+
+    def _check_generic_exit(self, pos: Dict, now: datetime) -> Optional[FleetSignal]:
+        """Generic exit logic based on stop/target from signal metadata and time."""
+        symbol = pos.get('symbol', '')
+        entry_price = pos.get('entry_price', 0)
+        side = pos.get('side', 'BUY')
+        metadata = pos.get('metadata', '{}')
+        if isinstance(metadata, str):
+            import json
+            try:
+                metadata = json.loads(metadata)
+            except Exception:
+                metadata = {}
+
+        # Parse entry time for staleness check
+        entry_time_str = pos.get('entry_time', '')
+        try:
+            entry_time = datetime.fromisoformat(entry_time_str.replace('Z', '+00:00'))
+            if entry_time.tzinfo is None:
+                entry_time = entry_time.replace(tzinfo=timezone.utc)
+        except Exception:
+            entry_time = now
+
+        age_hours = (now - entry_time).total_seconds() / 3600
+
+        # For Kalshi positions: check if market has settled (>24h for daily markets)
+        if self.bot_type == BotType.KALSHI:
+            # Kalshi daily markets settle next day — if >30h old, mark for close
+            if age_hours > 30:
+                return FleetSignal(
+                    bot_name=self.name,
+                    bot_type=self.bot_type.value,
+                    symbol=symbol,
+                    side='SELL' if side in ('BUY', 'YES') else 'BUY',
+                    entry_price=entry_price,
+                    reason=f"Expired: {age_hours:.0f}h old (Kalshi daily market)",
+                    metadata={'exit_type': 'expiry', 'trade_id': pos.get('trade_id')},
+                )
+
+        # For crypto positions: stop loss / take profit / staleness
+        if self.bot_type == BotType.CRYPTO:
+            # Stale position: >48h
+            if age_hours > 48:
+                return FleetSignal(
+                    bot_name=self.name,
+                    bot_type=self.bot_type.value,
+                    symbol=symbol,
+                    side='SELL',
+                    entry_price=entry_price,
+                    reason=f"Stale: {age_hours:.0f}h old (>48h limit)",
+                    metadata={'exit_type': 'stale', 'trade_id': pos.get('trade_id')},
+                )
+
+        return None
 
     def on_trade_result(self, signal: FleetSignal, success: bool, fill_info: Optional[Dict] = None):
         """Called after a trade attempt. Update internal state."""

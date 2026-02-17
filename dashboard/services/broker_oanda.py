@@ -9,7 +9,8 @@ from datetime import datetime
 from typing import List, Optional
 
 import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from dashboard.config import OANDA_API_KEY, OANDA_ACCOUNT_ID, OANDA_BASE_URL, TRADES_DB
 from dashboard.models import Position, BrokerHealth, BrokerStatus, Side
@@ -40,7 +41,8 @@ class OandaService:
 
         if OANDA_AVAILABLE and self.api_key:
             env = "practice" if "practice" in self.base_url else "live"
-            self.api = API(access_token=self.api_key, environment=env)
+            self.api = API(access_token=self.api_key, environment=env,
+                          request_params={"timeout": 5})
         else:
             self.api = None
 

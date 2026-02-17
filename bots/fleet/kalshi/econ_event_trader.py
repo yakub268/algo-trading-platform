@@ -286,7 +286,7 @@ class EconEventTrader(FleetBot):
         all_positions = super().get_open_positions()
         # Filter for economic tickers
         econ_positions = [p for p in all_positions
-                         if any(p.get('ticker', '').startswith(prefix)
+                         if any(p.get('symbol', '').startswith(prefix)
                                for prefix in self.ECON_PREFIXES)]
         return econ_positions
 

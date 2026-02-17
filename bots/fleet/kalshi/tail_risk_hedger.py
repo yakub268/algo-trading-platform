@@ -349,8 +349,17 @@ class TailRiskHedger(FleetBot):
         """
         all_positions = super().get_open_positions()
         # Filter for tail hedge strategy
-        tail_positions = [p for p in all_positions
-                         if p.get('metadata', {}).get('strategy') == 'tail_risk_hedge']
+        tail_positions = []
+        for p in all_positions:
+            meta = p.get('metadata', '{}')
+            if isinstance(meta, str):
+                import json
+                try:
+                    meta = json.loads(meta)
+                except Exception:
+                    meta = {}
+            if meta.get('strategy') == 'tail_risk_hedge':
+                tail_positions.append(p)
         return tail_positions
 
 

@@ -198,10 +198,12 @@ class FleetOrchestrator:
                 bot = bot_class(config=default_config)
                 self.bots[default_config.name] = bot
 
+                # Give all bots DB access for position queries and exits
+                bot.set_db(self.db)
+
                 # Track meta-controller references
                 if default_config.name == 'Confidence-Voter':
                     self._confidence_voter = bot
-                    bot.set_db(self.db)
                 elif default_config.name == 'Cross-Asset-Momentum':
                     self._cross_asset = bot
 
@@ -349,12 +351,42 @@ class FleetOrchestrator:
             try:
                 exit_signals = bot.check_exits()
                 for signal in exit_signals:
-                    result = self.router.execute(signal)
-                    if result['success']:
-                        # Calculate P&L
+                    exit_type = signal.metadata.get('exit_type', '')
+                    trade_id = signal.metadata.get('trade_id', '')
+
+                    # Kalshi expiry: market settled, just close in DB (no broker call needed)
+                    if exit_type == 'expiry' and bot.bot_type == BotType.KALSHI:
                         matching = [
                             p for p in open_positions
-                            if p['symbol'] == signal.symbol and p['bot_name'] == bot_name
+                            if p.get('trade_id') == trade_id or
+                               (p['symbol'] == signal.symbol and p['bot_name'] == bot_name)
+                        ]
+                        for pos in matching:
+                            # Expired Kalshi = total loss (settled at 0 for our side)
+                            pnl = -pos['position_size_usd']
+                            pnl_pct = -1.0
+                            self.db.close_trade(pos['trade_id'], 0.0, pnl, pnl_pct)
+                            self.db.update_bot_stats(bot_name, pnl, False, pos.get('edge', 0))
+                            self.db.update_thompson(bot_name, False, pnl)
+                            self.risk.record_trade_result(False)
+                            bot.record_loss()
+                            exit_trades.append({
+                                'action': 'EXPIRED',
+                                'symbol': signal.symbol,
+                                'price': 0.0,
+                                'pnl': pnl,
+                                'bot_name': f'Fleet:{bot_name}',
+                                'reason': signal.reason,
+                            })
+                        continue
+
+                    # For crypto/forex: execute sell via broker
+                    result = self.router.execute(signal)
+                    if result['success']:
+                        matching = [
+                            p for p in open_positions
+                            if p.get('trade_id') == trade_id or
+                               (p['symbol'] == signal.symbol and p['bot_name'] == bot_name)
                         ]
                         for pos in matching:
                             entry = pos['entry_price']

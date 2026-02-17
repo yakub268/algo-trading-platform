@@ -68,8 +68,9 @@ class MeanReversionSniper(FleetBot):
         self.min_position = config.extra.get('min_position', 25.0)
         self.max_position = config.extra.get('max_position', 50.0)
 
-        # Track open positions for exit management
+        # Track open positions for exit management (seeded from DB on first check_exits)
         self._open_positions: Dict[str, Dict] = {}
+        self._positions_seeded: bool = False
 
     def scan(self) -> List[FleetSignal]:
         """Scan for mean reversion entries."""
@@ -190,11 +191,102 @@ class MeanReversionSniper(FleetBot):
 
         return signal
 
+    def _seed_positions_from_db(self):
+        """Load open positions from FleetDB into in-memory dict on first run."""
+        if self._positions_seeded:
+            return
+        self._positions_seeded = True
+        db_positions = self.get_open_positions()
+        for pos in db_positions:
+            symbol = pos.get('symbol', '')
+            if symbol and symbol not in self._open_positions:
+                self._open_positions[symbol] = {
+                    'entry_price': pos.get('entry_price', 0),
+                    'target_price': pos.get('exit_price', 0),
+                    'stop_loss': pos.get('entry_price', 0) * (1 - self.stop_loss_pct / 100),
+                    'timestamp': pos.get('entry_time', ''),
+                    'trade_id': pos.get('trade_id', ''),
+                }
+        if db_positions:
+            self.logger.info(f"Seeded {len(db_positions)} open positions from DB")
+
     def check_exits(self) -> List[FleetSignal]:
-        """Check for exit conditions on open positions."""
-        # TODO: Implement exit checking based on middle BB or stop loss
-        # For now, let orchestrator handle exits
-        return []
+        """Check for exit conditions on open positions.
+
+        Exit triggers:
+        - Price >= middle BB (SMA 20) → take profit (mean reversion target hit)
+        - Price <= stop loss (3% below entry) → cut loss
+        """
+        if not self.client or not self.client._initialized:
+            return []
+
+        self._seed_positions_from_db()
+
+        exits = []
+        closed_symbols = []
+
+        for symbol, pos in self._open_positions.items():
+            try:
+                current_price = self.client.get_price(symbol)
+                if not current_price or current_price <= 0:
+                    continue
+
+                entry_price = pos['entry_price']
+                stop_loss = pos['stop_loss']
+
+                # Stop loss check
+                if current_price <= stop_loss:
+                    pnl_pct = ((current_price - entry_price) / entry_price) * 100
+                    exits.append(FleetSignal(
+                        bot_name=self.name,
+                        bot_type=self.bot_type.value,
+                        symbol=symbol,
+                        side="SELL",
+                        entry_price=current_price,
+                        target_price=entry_price,
+                        stop_loss=0,
+                        quantity=0,
+                        position_size_usd=0,
+                        confidence=0.95,
+                        edge=0,
+                        reason=f"Stop loss hit: {pnl_pct:.1f}% (entry={entry_price:.2f}, stop={stop_loss:.2f})",
+                        metadata={'exit_type': 'stop_loss', 'trade_id': pos.get('trade_id')},
+                    ))
+                    closed_symbols.append(symbol)
+                    self.logger.info(f"EXIT STOP LOSS: {symbol} at {current_price:.2f} ({pnl_pct:.1f}%)")
+                    continue
+
+                # Take profit: price reverted to middle BB
+                candles = self._get_candles(symbol, limit=self.bb_period + 5)
+                if candles and len(candles) >= self.bb_period:
+                    bb = self._calculate_bollinger_bands(candles)
+                    if bb and current_price >= bb['middle']:
+                        pnl_pct = ((current_price - entry_price) / entry_price) * 100
+                        exits.append(FleetSignal(
+                            bot_name=self.name,
+                            bot_type=self.bot_type.value,
+                            symbol=symbol,
+                            side="SELL",
+                            entry_price=current_price,
+                            target_price=entry_price,
+                            stop_loss=0,
+                            quantity=0,
+                            position_size_usd=0,
+                            confidence=0.90,
+                            edge=0,
+                            reason=f"Middle BB target hit: {pnl_pct:.1f}% (entry={entry_price:.2f}, mid_bb={bb['middle']:.2f})",
+                            metadata={'exit_type': 'take_profit_bb', 'trade_id': pos.get('trade_id')},
+                        ))
+                        closed_symbols.append(symbol)
+                        self.logger.info(f"EXIT TP: {symbol} at {current_price:.2f} (middle BB {bb['middle']:.2f}, {pnl_pct:.1f}%)")
+
+            except Exception as e:
+                self.logger.error(f"Exit check failed for {symbol}: {e}")
+
+        for s in closed_symbols:
+            del self._open_positions[s]
+
+        return exits
 
     def _get_candles(self, symbol: str, limit: int = 100) -> List[Dict]:
         """Fetch candles from Alpaca."""
